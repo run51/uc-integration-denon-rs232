@@ -1,0 +1,17 @@
+services:
+  denon-rs232:
+    build: .
+    image: uc-intg-denon-rs232:local
+    container_name: uc-intg-denon-rs232
+    restart: unless-stopped
+    # Host networking is required for mDNS discovery by the Remote.
+    # Without it, register the driver manually on the Remote
+    # (Integrations -> Add -> Custom: http://<docker-host-ip>:9092).
+    network_mode: host
+    environment:
+      UC_INTEGRATION_HTTP_PORT: "9092"
+      UC_LOG_LEVEL: INFO
+      # Uncomment when not using host networking:
+      # UC_DISABLE_MDNS_PUBLISH: "true"
+    volumes:
+      - ./config:/config

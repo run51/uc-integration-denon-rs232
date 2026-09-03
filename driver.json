@@ -1,0 +1,45 @@
+{
+  "driver_id": "denon_rs232",
+  "version": "0.1.0",
+  "min_core_api": "0.20.0",
+  "name": {
+    "en": "Denon AVP-A1HD (RS-232)",
+    "fr": "Denon AVP-A1HD (RS-232)"
+  },
+  "icon": "custom:denon.png",
+  "description": {
+    "en": "Controls a Denon AVP-A1HD (or other Denon/Marantz unit using the classic ASCII protocol) over RS-232 through a serial-to-IP bridge such as the Unfolded Circle Dock 3.",
+    "fr": "Pilote un Denon AVP-A1HD (ou tout Denon/Marantz utilisant le protocole ASCII classique) en RS-232 via une passerelle série-vers-IP telle que le Dock 3 Unfolded Circle."
+  },
+  "port": 9092,
+  "developer": {
+    "name": "Guillaume",
+    "url": "https://github.com/"
+  },
+  "home_page": "https://github.com/",
+  "device_discovery": false,
+  "setup_data_schema": {
+    "title": {
+      "en": "Integration Setup",
+      "fr": "Configuration de l'intégration"
+    },
+    "settings": [
+      {
+        "id": "info",
+        "label": {
+          "en": "Setup process",
+          "fr": "Progression de la configuration"
+        },
+        "field": {
+          "label": {
+            "value": {
+              "en": "This integration controls a Denon receiver/processor over its RS-232 port through a TCP serial bridge.",
+              "fr": "Cette intégration pilote un ampli/processeur Denon via son port RS-232 au travers d'une passerelle série TCP."
+            }
+          }
+        }
+      }
+    ]
+  },
+  "release_date": "2026-09-03"
+}
