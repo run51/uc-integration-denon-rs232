@@ -13,10 +13,11 @@
   },
   "port": 9092,
   "developer": {
-    "name": "Guillaume",
-    "url": "https://github.com/"
+    "name": "run51",
+    "email": "ton.email@exemple.com",
+    "url": "https://github.com/run51"
   },
-  "home_page": "https://github.com/",
+  "home_page": "https://github.com/run51/uc-integration-denon-rs232",
   "device_discovery": false,
   "setup_data_schema": {
     "title": {
