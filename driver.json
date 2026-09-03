@@ -1,6 +1,6 @@
 {
   "driver_id": "denon_rs232",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "min_core_api": "0.20.0",
   "name": {
     "en": "Denon AVP-A1HD (RS-232)",
@@ -14,7 +14,7 @@
   "port": 9092,
   "developer": {
     "name": "run51",
-    "email": "renouxguillaume@yahoo.fr",
+    "email": "noreply@example.com",
     "url": "https://github.com/run51"
   },
   "home_page": "https://github.com/run51/uc-integration-denon-rs232",
