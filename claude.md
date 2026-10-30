@@ -1,0 +1,114 @@
+# Contexte projet — intégration Denon RS-232 pour Unfolded Circle
+
+Lis ce fichier en début de session. Il contient le contexte et les décisions qui ne sont
+pas déductibles du code. Réponds en français.
+
+## Objectif
+
+Piloter un **Denon AVP-A1HD** depuis une **Remote 3** Unfolded Circle, **sans Home Assistant**,
+via le port RS-232 de l'ampli et le pont série TCP du **Dock 3**.
+
+Chaîne : `Remote 3 → driver (WebSocket Integration-API) → TCP 5000 → Dock 3 → câble jack/DB9 → Denon`
+
+Remplace un montage ESPHome sur LILYGO T-RSS3 (qui fonctionne et sert de référence/repli).
+L'objectif est de supprimer l'ESP **et** la machine Home Assistant de la chaîne.
+
+## État actuel
+
+- Driver complet, 47 tests verts, installé et fonctionnel sur la Remote.
+- Validé contre `tests/denon_simulator.py` (faux Denon en TCP) : connexion, interrogation
+  d'état, polling 30 s, reconnexion.
+- **Pas encore testé contre le vrai ampli** — le câble jack 3,5 mm ↔ DB9 n'est pas encore arrivé.
+
+## Architecture
+
+Deux couches, volontairement indépendantes.
+
+**`intg-denon/denon_control/`** — bibliothèque pure, aucune dépendance Unfolded Circle,
+réutilisable depuis Home Assistant ou un CLI :
+- `transport.py` : TCP asyncio, framing sur CR, pacing 60 ms, blocage 4 s après `PWON`
+- `protocol.py` : parser sans état, une ligne → un `DenonEvent` typé
+- `device.py` : modèle d'état + commandes haut niveau, notification par listeners
+- `const.py` : **toutes les tables protocole** (sources, modes, paramètres PS)
+
+**`intg-denon/`** — couche UC, bâtie sur `ucapi-framework` (JackJPowell) :
+- entités : 1 media player, 1 remote (4 pages UI, 151 commandes simples), 15 selects,
+  11 switches, 13 sensors
+- `const.py` : définitions **déclaratives** des entités (`SELECTS`, `SWITCHES`, `SENSORS`)
+- `device.py` : `PersistentConnectionDevice`, debounce des mises à jour, traduction
+  libellé ↔ code protocole
+
+Structure inspirée de `johncarey70/uc-integration-lumagen` (MPL-2.0).
+
+## Pièges du protocole Denon — chacun a son test
+
+Observés sur une capture RS-232 réelle de l'AVP-A1HD. Ne pas les casser :
+
+1. **Trames fragmentées** : `CVFL` puis ` 405\r` en deux lectures. Accumuler jusqu'au CR.
+2. **`MVMAX 98`** suit chaque `MV`. Un `startswith("MV")` naïf donnerait −80 dB.
+3. **`MSQUICK1`** porte le préfixe `MS` mais n'est pas un mode surround.
+4. **`SVDVD` / `SVSOURCE`** sont l'affectation vidéo, pas la source (`SI`).
+5. **Séparateurs PS irréguliers** : `PSROOM EQ:AUDYSSEY`, `PSCINEMA EQ.ON`, `PSNIGHT MID`.
+6. **Quirks firmware** : `PSDYN VOL`, `PSDYE ON` → alias vers `DYNVOL` / `DYNEQ`.
+7. **Requêtes sans réponse** (`PSNIGHT ?` observé muet) → architecture 100 % événementielle,
+   aucune commande n'attend de réponse.
+8. **Après `MVUP`**, l'ampli renvoie l'ancienne puis la nouvelle valeur → debounce 80 ms.
+9. **Note K du protocole** : 4 s de silence imposées après `PWON`.
+10. **En veille, l'ampli ne répond qu'à `PW?`.**
+
+Décodage des niveaux : `MV30` = −50,0 dB / `MV305` = −49,5 / code 80 = 0 dB.
+Canaux `CV` : code 50 = 0 dB, plage 38..62.
+
+## Matériel — vérifié dans le firmware du dock
+
+- **Le Dock 3 intègre un vrai transceiver RS-232.** Pas de MAX3232, pas de convertisseur TTL
+  (les notes de version du firmware les déclarent explicitement non supportés).
+- **Utiliser le port externe 2 → TCP 5000.** Le port 1 (4999) émet des messages de démarrage
+  que l'ampli interpréterait comme des commandes.
+- Brochage du cordon : Tip (TX dock) → DB9 broche 3, Ring (RX) → broche 2, Sleeve → broche 5.
+- Câble retenu : StarTech `9M351M-RS232-CABLE`. Attention, la plupart des cordons génériques
+  utilisent la convention inverse (broche 2 → Tip) et nécessiteraient un null-modem.
+- Réglages dock : port 2 en mode RS232 forcé, 9600 8N1, serveur TCP activé. Pas de hot-plug.
+
+## Points ouverts
+
+1. **Dynamic Volume / Dynamic EQ** : absents du PDF protocole V6. Hypothèses retenues :
+   `PSDYNVOL ON|OFF`, `PSDYNSET DAY|EVE|NGT`, `PSDYNEQ ON|OFF`. À confirmer sur le vrai ampli ;
+   un échec apparaîtra en log comme `Unknown line from unit`.
+2. **Mute, extinction, zones 2/3/4** : jamais déclenchés dans la capture, modélisés depuis le PDF.
+3. **Source list** : les 13 sources non nord-américaines sont présentes. Guillaume élaguera
+   ce dont il n'a pas besoin dans `denon_control/const.py::SOURCES` — tout le reste
+   (commandes simples, selects, pages UI) se régénère automatiquement.
+
+## Contraintes d'empaquetage (durement acquises)
+
+L'archive installable sur la Remote doit respecter la spécification `core-api`
+(`doc/integration-driver/driver-installation.md`) :
+
+- `.tar.gz`, `driver.json` **à la racine**, binaire aarch64 nommé `driver` dans `./bin`
+- **Icône : exactement 90×90 px, PNG ou JPG, 16 Ko maximum.** Une icône 256×256 fait rejeter
+  l'archive avec « Archive invalide, données manquantes ou métadonnées illisibles ».
+- `driver_id` ≥ 5 caractères, minuscules, pas de préfixe `uc_`
+- `developer` doit inclure `name`, `email`, `url`
+
+Build : workflow GitHub `Build & Release` (tag `v*` ou déclenchement manuel avec le numéro
+de version). Une version ne peut servir qu'une fois — incrémenter à chaque build.
+PyInstaller ne cross-compile pas : runner ARM64 obligatoire.
+
+## Environnement de Guillaume
+
+- Windows, dépôt local en `C:\denon`, repo GitHub `run51/uc-integration-denon-rs232`
+- Python 3.13 en local (le projet vise 3.11+, le build Remote utilise 3.11)
+- **La découverte mDNS entre Windows et la Remote ne fonctionne pas** chez lui — ne pas
+  proposer le mode « driver externe sur PC », passer par l'archive installée sur la Remote.
+- Tester avec le simulateur : `python tests\denon_simulator.py 5000`, puis configurer
+  l'intégration avec l'IP du PC.
+
+## Conventions
+
+- Code et commentaires en anglais, échanges en français.
+- Les tables protocole sont la source de vérité : ajouter une source ou un mode se fait
+  dans `denon_control/const.py` uniquement.
+- Toute correction d'un piège protocole doit s'accompagner d'un test dans
+  `tests/test_protocol.py`.
+- `pytest` doit rester vert avant tout commit.
