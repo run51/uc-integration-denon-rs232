@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.4
+
+- Le widget du lecteur multimédia affiche l'état de l'ampli : source (ligne titre),
+  mode surround (ligne artiste) et volume en dB, avec « Muted » si coupé (ligne album).
+  Lignes vidées en veille.
+
 ## v0.1.3
 
 - Identifiant d'appareil stable (`denon`), indépendant de l'adresse IP de la passerelle.

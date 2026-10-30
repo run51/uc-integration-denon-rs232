@@ -297,7 +297,35 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
             attrs[media_player.Attributes.SOUND_MODE] = SURROUND_MODES.get(
                 st.surround, st.surround.title()
             )
+        attrs.update(self._media_info_attributes())
         return attrs
+
+    def _media_info_attributes(self) -> dict[media_player.Attributes, str]:
+        """Show source / surround mode / volume in the title / artist / album lines.
+
+        The media widget on activity pages only displays these text fields, so this
+        is how the unit's state becomes visible without opening the entity.
+        Cleared outside of ON so standby does not show stale values.
+        """
+        st = self.denon
+        if self.state is not media_player.States.ON:
+            return {
+                media_player.Attributes.MEDIA_TITLE: "",
+                media_player.Attributes.MEDIA_ARTIST: "",
+                media_player.Attributes.MEDIA_ALBUM: "",
+            }
+        volume = "" if st.volume_db is None else f"{st.volume_db:.1f} dB"
+        if st.muted:
+            volume = f"{volume} · Muted" if volume else "Muted"
+        return {
+            media_player.Attributes.MEDIA_TITLE: (
+                SOURCES.get(st.source, st.source) if st.source else ""
+            ),
+            media_player.Attributes.MEDIA_ARTIST: (
+                SURROUND_MODES.get(st.surround, st.surround.title()) if st.surround else ""
+            ),
+            media_player.Attributes.MEDIA_ALBUM: volume,
+        }
 
     def _select_current_code(self, cfg: SelectConfig) -> str | None:
         st = self.denon

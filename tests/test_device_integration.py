@@ -51,6 +51,7 @@ async def test_full_cycle() -> None:
         mp = dev.get_media_player_attributes()
         assert mp[media_player.Attributes.STATE] is media_player.States.STANDBY
         assert "TV/CBL" in mp[media_player.Attributes.SOURCE_LIST]
+        assert mp[media_player.Attributes.MEDIA_TITLE] == ""
 
         # Power on -> burst of state (fragmented CV lines included)
         await dev.power_on()
@@ -96,7 +97,13 @@ async def test_full_cycle() -> None:
         # Mute
         await dev.mute(True)
         await _wait_for(lambda: dev.denon.muted is True)
-        assert dev.get_media_player_attributes()[media_player.Attributes.MUTED] is True
+        mp = dev.get_media_player_attributes()
+        assert mp[media_player.Attributes.MUTED] is True
+
+        # Media widget lines: source / surround mode / volume in dB
+        assert mp[media_player.Attributes.MEDIA_TITLE] == "TV/CBL"
+        assert mp[media_player.Attributes.MEDIA_ARTIST] == "7ch Stereo"
+        assert mp[media_player.Attributes.MEDIA_ALBUM] == "-31.0 dB · Muted"
 
         # Zone 2
         await dev.set_switch(SWITCH_BY_ID["zone2_power"], True)
