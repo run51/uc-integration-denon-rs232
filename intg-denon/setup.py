@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from const import DEFAULT_PORT, DeviceConfig
@@ -14,6 +15,22 @@ from ucapi_framework import BaseSetupFlow
 _LOG = logging.getLogger(__name__)
 
 VALIDATION_TIMEOUT_S = 4.0
+
+# Entity ids derive from the device identifier, so it must not depend on the bridge
+# address: moving from a test bridge to the dock would otherwise orphan every entity
+# referenced by activities and pages. "Update" removes the old config before the
+# new one is built, so an updated device gets this same identifier back.
+BASE_IDENTIFIER = "denon"
+
+
+def make_identifier(is_taken: Callable[[str], bool]) -> str:
+    """Return the first free stable identifier: denon, denon_2, denon_3..."""
+    if not is_taken(BASE_IDENTIFIER):
+        return BASE_IDENTIFIER
+    index = 2
+    while is_taken(f"{BASE_IDENTIFIER}_{index}"):
+        index += 1
+    return f"{BASE_IDENTIFIER}_{index}"
 
 
 class SetupFlow(BaseSetupFlow[DeviceConfig]):
@@ -86,13 +103,12 @@ class SetupFlow(BaseSetupFlow[DeviceConfig]):
         if not address or not 1 <= port <= 65535:
             return self.get_manual_entry_form()
 
-        identifier = "denon_" + address.replace(".", "_").replace(":", "_")
-
         if validate:
             error = await _probe(address, port)
             if error is not None:
                 return error
 
+        identifier = make_identifier(self.config.contains)
         return DeviceConfig(identifier=identifier, name=name, address=address, port=port)
 
 

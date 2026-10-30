@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.3
+
+- Identifiant d'appareil stable (`denon`), indépendant de l'adresse IP de la passerelle.
+  Changer d'IP (simulateur → Dock 3) ne renomme plus les entités et ne casse plus les
+  activités ni les pages qui les utilisent. Les entités d'une configuration existante
+  sont renommées une dernière fois au passage à cette version.
+
 ## v0.1.0
 
 - Première version : Denon AVP-A1HD en RS-232 via passerelle TCP (Dock 3, IP2SL…).
