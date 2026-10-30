@@ -43,3 +43,6 @@ Thumbs.db
 
 # Local Python version manager
 .python-version
+
+# Local Proxmox MCP job database (unrelated to this project)
+proxmox-jobs.sqlite3*
