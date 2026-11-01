@@ -92,7 +92,7 @@ Canaux `CV` : code 50 = 0 dB, plage 38..62.
    `PSDYN OFF|ON|VOL` (un seul paramètre), `PSDSX`, `PSREFLEV`, `PSFH:`, `PSPHG` ajoutés ;
    **Night supprimé**. Vérifié en direct le 01/11/2026. L'ancien YAML ESPHome
    (`denonavp.yaml`) est dans le même dossier.
-2. **Mute, extinction, zones 2/3/4** : jamais déclenchés dans la capture, modélisés depuis le PDF.
+2. **Zones 2/3/4** : jamais déclenchées, modélisées depuis le PDF (mute et extinction validés en réel).
 3. **Source list** : les 13 sources non nord-américaines sont présentes. Guillaume élaguera
    ce dont il n'a pas besoin dans `denon_control/const.py::SOURCES` — tout le reste
    (commandes simples, selects, pages UI) se régénère automatiquement.
