@@ -19,7 +19,6 @@ from denon_control.const import (
     DEFAULT_TCP_PORT,
     DIGITAL_INPUT_MODES,
     DRC_MODES,
-    DSX_MODES,
     DYNAMIC_EQ_MODES,
     DYNAMIC_VOLUME_SETTINGS,
     INPUT_MODES,
@@ -104,12 +103,6 @@ def _build_simple_commands() -> dict[str, str]:
         cmds[f"DYN_VOL_{slug(code)}"] = f"{ps['DYNSET']}{code}"
     for code in REFERENCE_LEVELS:
         cmds[f"REF_LEVEL_{code}"] = f"{ps['REFLEV']}{code}"
-    cmds["DSX_OFF"] = f"{ps['DSX']}OFF"
-    cmds["DSX_HEIGHT"] = f"{ps['DSX']}ONH"
-    cmds["DSX_WIDE"] = f"{ps['DSX']}ONW"
-    for name, key in (("STAGE_WIDTH", "STW"), ("STAGE_HEIGHT", "STH")):
-        cmds[f"{name}_UP"] = f"{ps[key]}UP"
-        cmds[f"{name}_DOWN"] = f"{ps[key]}DOWN"
     cmds["PLIIZ_HEIGHT_ON"] = f"{ps['FH']}ON"
     cmds["PLIIZ_HEIGHT_OFF"] = f"{ps['FH']}OFF"
     for code in PLIIZ_HEIGHT_GAINS:
@@ -243,7 +236,6 @@ SELECTS: tuple[SelectConfig, ...] = (
     SelectConfig("dynamic_eq", "Dynamic EQ", "ps", DYNAMIC_EQ_MODES, key="DYN"),
     SelectConfig("dynamic_volume", "Dynamic Volume", "ps", DYNAMIC_VOLUME_SETTINGS, key="DYNSET"),
     SelectConfig("reference_level", "Reference Level", "ps", REFERENCE_LEVELS, key="REFLEV"),
-    SelectConfig("dsx", "Audyssey DSX", "ps", DSX_MODES, key="DSX"),
     SelectConfig("pliiz_gain", "PLIIz Height Gain", "ps", PLIIZ_HEIGHT_GAINS, key="PHG"),
     SelectConfig("audio_restorer", "Audio Restorer", "ps", RESTORER_MODES, key="RSTR"),
     SelectConfig("pl_mode", "PL Mode", "ps", PL_MODES, key="MODE"),
@@ -318,7 +310,6 @@ SENSORS: tuple[SensorConfig, ...] = (
     SensorConfig("room_eq", "Room EQ", labels=ROOM_EQ_MODES),
     SensorConfig("dynamic_eq", "Dynamic EQ", labels=DYNAMIC_EQ_MODES),
     SensorConfig("dynamic_volume", "Dynamic Volume", labels=DYNAMIC_VOLUME_SETTINGS),
-    SensorConfig("dsx", "Audyssey DSX", labels=DSX_MODES),
     SensorConfig("audio_restorer", "Audio Restorer", labels=RESTORER_MODES),
     SensorConfig("zone2_source", "Zone 2 Source", labels=ZONE_SOURCE_OPTIONS),
     SensorConfig("zone2_volume_db", "Zone 2 Volume", unit="dB"),

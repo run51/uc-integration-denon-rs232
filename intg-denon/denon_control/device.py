@@ -136,6 +136,16 @@ class DenonDevice:  # pylint: disable=too-many-public-methods
 
     async def send_raw(self, command: str) -> None:
         """Send a raw protocol command (without <CR>)."""
+        upper = command.upper()
+        if (
+            upper.startswith("PSDYNSET ")
+            and not upper.endswith("?")
+            and self._state.parameters.get("DYN") != "VOL"
+        ):
+            # The unit ignores PSDYNSET unless Dynamic Volume is enabled
+            # (PSDYN VOL): enable it first, as choosing a level implies it.
+            await self._transport.send("PSDYN VOL")
+            self._state.parameters["DYN"] = "VOL"
         await self._transport.send(command)
         if command.upper() == "PWON":
             self._transport.hold_for(POWER_ON_SETTLE_S)

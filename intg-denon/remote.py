@@ -129,7 +129,7 @@ class DenonRemote(RemoteEntity):
         return page
 
     def _page_audyssey(self) -> UiPage:
-        page = UiPage("audyssey", "Audyssey", grid=Size(4, 12))
+        page = UiPage("audyssey", "Audyssey", grid=Size(4, 9))
         page.add(create_ui_text("-- Room EQ --", 0, 0, Size(4, 1)))
         row = self._grid(
             page,
@@ -150,17 +150,6 @@ class DenonRemote(RemoteEntity):
         row += 1
         for col, (code, label) in enumerate(REFERENCE_LEVELS.items()):
             page.add(create_ui_text(label, col, row, Size(1, 1), f"REF_LEVEL_{code}"))
-        row += 1
-        page.add(create_ui_text("-- Audyssey DSX --", 0, row, Size(4, 1)))
-        row += 1
-        page.add(create_ui_text("Off", 0, row, Size(1, 1), "DSX_OFF"))
-        page.add(create_ui_text("Height", 1, row, Size(1, 1), "DSX_HEIGHT"))
-        page.add(create_ui_text("Wide", 2, row, Size(2, 1), "DSX_WIDE"))
-        row += 1
-        page.add(create_ui_text("W-", 0, row, Size(1, 1), "STAGE_WIDTH_DOWN"))
-        page.add(create_ui_text("W+", 1, row, Size(1, 1), "STAGE_WIDTH_UP"))
-        page.add(create_ui_text("H-", 2, row, Size(1, 1), "STAGE_HEIGHT_DOWN"))
-        page.add(create_ui_text("H+", 3, row, Size(1, 1), "STAGE_HEIGHT_UP"))
         return page
 
     def _page_zones(self) -> UiPage:

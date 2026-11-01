@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.6
+
+- Dynamic Volume : choisir Day / Evening / Midnight active automatiquement
+  « Dynamic EQ + Volume » (`PSDYN VOL`) avant d'envoyer le niveau. L'ampli ignore
+  `PSDYNSET` tant que le Dynamic Volume est éteint (vérifié sur l'ampli réel).
+- Retrait d'Audyssey DSX (sélecteur, capteur, commandes et boutons de la page Audyssey) :
+  indisponible sur cette installation (pas d'enceintes Height / Wide). Le protocole reste
+  décodé par `denon_control`.
+
 ## v0.1.5
 
 - Protocole « 3D upgrade » (Denon 6.0.2) de l'AVP-A1HD, vérifié sur l'ampli réel :

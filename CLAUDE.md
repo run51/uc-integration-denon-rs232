@@ -15,12 +15,14 @@ L'objectif est de supprimer l'ESP **et** la machine Home Assistant de la chaîne
 
 ## État actuel
 
-- Driver complet, 59 tests verts, installé et fonctionnel sur la Remote.
+- Driver complet, 60 tests verts, installé et fonctionnel sur la Remote.
 - Validé contre `tests/denon_simulator.py` (faux Denon en TCP) : connexion, interrogation
   d'état, polling 30 s, reconnexion.
 - **Validé sur le vrai ampli le 01/11/2026** (v0.1.4, Dock 1 `UCD3-0CCD80` en 192.168.2.143:5000) :
   allumage, source, mode surround, volume, mute et retour d'état dans le widget fonctionnent.
-  Restent à tester : Dynamic Volume / Dynamic EQ, extinction, zones 2/3/4.
+  Dynamic EQ, Dynamic Volume et Reference Level validés en v0.1.5/0.1.6.
+  Restent à tester : extinction, zones 2/3/4.
+- **Audyssey DSX non exposé** (v0.1.6) : indisponible sur l'installation de Guillaume.
 
 ## Architecture
 
@@ -34,8 +36,8 @@ réutilisable depuis Home Assistant ou un CLI :
 - `const.py` : **toutes les tables protocole** (sources, modes, paramètres PS)
 
 **`intg-denon/`** — couche UC, bâtie sur `ucapi-framework` (JackJPowell) :
-- entités : 1 media player, 1 remote (4 pages UI, 162 commandes simples), 18 selects,
-  10 switches, 13 sensors
+- entités : 1 media player, 1 remote (4 pages UI, 155 commandes simples), 17 selects,
+  10 switches, 12 sensors
 - `const.py` : définitions **déclaratives** des entités (`SELECTS`, `SWITCHES`, `SENSORS`)
 - `device.py` : `PersistentConnectionDevice`, debounce des mises à jour, traduction
   libellé ↔ code protocole
@@ -53,6 +55,7 @@ Observés sur une capture RS-232 réelle de l'AVP-A1HD. Ne pas les casser :
 5. **Séparateurs PS irréguliers** : `PSROOM EQ:AUDYSSEY`, `PSCINEMA EQ.ON`, `PSDSX ONH`.
 6. **`PSDYN VOL`** est le paramètre Dynamic EQ (valeur `VOL`) ; `PSDYNSET` est un autre
    paramètre (préfixes testés du plus long au plus court). `PSDYE ON` (ligne tronquée) → `DYN`.
+   **L'ampli ignore `PSDYNSET` si `PSDYN` ≠ `VOL`** : `send_raw` envoie `PSDYN VOL` avant.
 7. **Requêtes sans réponse** (`PSNIGHT ?`, `PSTONE DEFEAT ?` muets) → architecture 100 % événementielle,
    aucune commande n'attend de réponse.
 8. **Après `MVUP`**, l'ampli renvoie l'ancienne puis la nouvelle valeur → debounce 80 ms.

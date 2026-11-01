@@ -36,7 +36,7 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
         self.quick = "QUICK1"
         self.ps = {
             "ROOM EQ:": "AUDYSSEY",
-            "DYN ": "VOL",
+            "DYN ": "ON",
             "DYNSET ": "EVE",
             "DSX ": "OFF",
             "REFLEV ": "0",
@@ -155,6 +155,8 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
                     rest = body[len(key):].strip()
                     if rest == "?":
                         await self.broadcast(f"PS{key}{value}")
+                    elif key == "DYNSET " and self.ps["DYN "] != "VOL":
+                        pass  # real unit ignores the level unless Dynamic Volume is on
                     else:
                         self.ps[key] = rest
                         await self.broadcast(f"PS{key}{rest}")
