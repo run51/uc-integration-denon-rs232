@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.9
+
+- Renamed "Denon AV receivers & processors (RS-232)": the driver is built on the
+  AVP-A1HD commands but works with other Denon units of the same generation.
+- README: compatibility table checked against the official RS-232 protocols of the
+  AVP-A1HD (original and 3D upgrade), AVR-4308CI and AVR-3808CI.
+- Default device name in the setup: "Denon".
+
 ## v0.1.8
 
 - Media widget shows the unit's state on the two lines displayed by the Remote 3:

@@ -1,10 +1,34 @@
-# Denon AVP-A1HD RS-232 — Unfolded Circle integration
+# Denon AV receivers & processors (RS-232) — Unfolded Circle integration
 
-Controls a Denon AVP-A1HD (and any Denon/Marantz unit speaking the classic ASCII protocol
-`PWON` / `MV80` / `SIDVD`) from an Unfolded Circle Remote Two/3, **without Home Assistant**,
-through the unit's RS-232 port and a serial-to-IP bridge — typically the TCP server of the
-**Unfolded Circle Dock 3** (ports 4999/5000), but also Global Caché IP2SL/iTach,
-USR-TCP232, ser2net…
+Controls Denon AV receivers and processors from an Unfolded Circle Remote Two/3,
+**without Home Assistant**, through the unit's RS-232 port and a serial-to-IP bridge —
+typically the TCP server of the **Unfolded Circle Dock 3** (ports 4999/5000), but also
+Global Caché IP2SL/iTach, USR-TCP232, ser2net…
+
+Built and tested with the RS-232 commands of the **Denon AVP-A1HD** (with the 2011
+"3D upgrade"). It works with other Denon units of the same generation that use the same
+ASCII protocol (`PWON` / `MV80` / `SIDVD`…).
+
+## Compatibility
+
+Checked against Denon's official RS-232 protocol documents:
+
+| Function | AVP-A1HD (3D upgrade) | AVP-A1HD (original) | AVR-4308CI | AVR-3808CI |
+|---|---|---|---|---|
+| Power, volume, mute | ✅ | ✅ | ✅ | ✅ |
+| Sources, surround modes, Quick Select 1-3 | ✅ | ✅ | ✅ | ✅ |
+| Room EQ, Cinema EQ, Restorer, DRC | ✅ | ✅ | ✅ | ✅ |
+| Zones 2/3/4, channel levels | ✅ | ✅ | ✅ | ✅ |
+| Dynamic EQ / Dynamic Volume | ✅ | ⚠️ different command | ❌ | ❌ |
+| Reference Level, Audyssey DSX, PLIIz | ✅ | ❌ | ❌ | ❌ |
+
+- Tested on real hardware: AVP-A1HD with the 3D upgrade, through a Dock 3.
+- Very likely compatible (protocol documents not found): AVC-A1HD (same platform as the
+  AVP-A1HD) and AVR-5308CI (same generation as the AVR-4308CI).
+- On the AVR-3808CI / 4308CI the source is called `DVR` (not `DVR-1` / `DVR-2`), and the
+  Home THX Cinema and Dolby H/P modes do not exist.
+
+Reports from owners of other models are welcome.
 
 ```
 Remote 3 ──WS──▶ this driver ──TCP 5000──▶ Dock 3 ──3.5 mm jack / DB9 cable──▶ Denon
@@ -156,7 +180,7 @@ cd intg-denon && UC_CONFIG_HOME=../config python driver.py
 
 ## Setup on the Remote
 
-Integrations → Add → *Denon AVP-A1HD (RS-232)* → fill in:
+Integrations → Add → *Denon AV receivers & processors (RS-232)* → fill in:
 
 - Name
 - Bridge IP address (the **dock's** address, not the Denon's)

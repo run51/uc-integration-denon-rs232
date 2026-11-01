@@ -1,15 +1,15 @@
 {
   "driver_id": "denon_rs232",
-  "version": "0.1.8",
+  "version": "0.1.9-test1",
   "min_core_api": "0.20.0",
   "name": {
-    "en": "Denon AVP-A1HD (RS-232)",
-    "fr": "Denon AVP-A1HD (RS-232)"
+    "en": "Denon AV receivers & processors (RS-232)",
+    "fr": "Amplis et processeurs Denon (RS-232)"
   },
   "icon": "custom:denon.png",
   "description": {
-    "en": "Controls a Denon AVP-A1HD (or other Denon/Marantz unit using the classic ASCII protocol) over RS-232 through a serial-to-IP bridge such as the Unfolded Circle Dock 3.",
-    "fr": "Pilote un Denon AVP-A1HD (ou tout Denon/Marantz utilisant le protocole ASCII classique) en RS-232 via une passerelle série-vers-IP telle que le Dock 3 Unfolded Circle."
+    "en": "Built and tested with the RS-232 commands of the Denon AVP-A1HD (with the 3D upgrade). Works with other Denon units of the same generation using the same protocol, such as the AVC-A1HD and the AVR-3808CI / 4308CI / 5308CI. Advanced Audyssey settings (Dynamic EQ, Dynamic Volume, Reference Level, DSX) are specific to the upgraded AVP-A1HD. Connects through a serial-to-IP bridge such as the Unfolded Circle Dock 3.",
+    "fr": "Réalisé et testé avec les commandes RS-232 du Denon AVP-A1HD (avec la mise à jour 3D). Fonctionne avec les autres Denon de la même génération utilisant le même protocole, comme l'AVC-A1HD et les AVR-3808CI / 4308CI / 5308CI. Les réglages Audyssey avancés (Dynamic EQ, Dynamic Volume, Reference Level, DSX) sont propres à l'AVP-A1HD mis à jour. Connexion via une passerelle série-vers-IP comme le Dock 3 Unfolded Circle."
   },
   "port": 9092,
   "developer": {

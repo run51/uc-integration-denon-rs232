@@ -62,7 +62,7 @@ class SetupFlow(BaseSetupFlow[DeviceConfig]):
                     },
                 },
                 {
-                    "field": {"text": {"value": "Denon AVP-A1HD"}},
+                    "field": {"text": {"value": "Denon"}},
                     "id": "name",
                     "label": {"en": "Device name", "fr": "Nom de l'appareil"},
                 },
@@ -91,7 +91,7 @@ class SetupFlow(BaseSetupFlow[DeviceConfig]):
         self, input_values: dict[str, Any]
     ) -> DeviceConfig | SetupError | RequestUserInput:
         """Validate input, optionally probe the unit, and build the config."""
-        name = str(input_values.get("name", "")).strip() or "Denon AVP-A1HD"
+        name = str(input_values.get("name", "")).strip() or "Denon"
         address = str(input_values.get("address", "")).strip()
         validate = _as_bool(input_values.get("validate", True))
 

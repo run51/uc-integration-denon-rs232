@@ -1,4 +1,4 @@
-"""Denon AVP-A1HD RS-232 integration driver for Unfolded Circle Remote Two/3."""
+"""Denon RS-232 integration driver (AVP-A1HD generation) for Unfolded Circle Remote Two/3."""
 
 from __future__ import annotations
 
