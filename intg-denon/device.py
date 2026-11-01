@@ -310,7 +310,7 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         """Show the unit state in the two text lines of the media widget.
 
         The Remote 3 media widget only displays the title and artist lines:
-        Line 1 (title): source · volume · Muted.
+        Line 1 (title): volume · Muted · source.
         Line 2 (artist): surround mode · Room EQ · Dynamic EQ (+ Dynamic Volume level).
         Cleared outside of ON so standby does not show stale values.
         """
@@ -321,11 +321,12 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
                 media_player.Attributes.MEDIA_ARTIST: "",
                 media_player.Attributes.MEDIA_ALBUM: "",
             }
-        line1 = [SOURCES.get(st.source, st.source)] if st.source else []
-        if st.volume_db is not None:
-            line1.append(f"{st.volume_db:.1f} dB")
+        # Volume first: always at the same place at the start of the line.
+        line1 = [f"{st.volume_db:.1f} dB"] if st.volume_db is not None else []
         if st.muted:
             line1.append("Muted")
+        if st.source:
+            line1.append(SOURCES.get(st.source, st.source))
 
         line2 = []
         if st.surround:
