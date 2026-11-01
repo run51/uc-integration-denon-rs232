@@ -15,10 +15,12 @@ L'objectif est de supprimer l'ESP **et** la machine Home Assistant de la chaîne
 
 ## État actuel
 
-- Driver complet, 47 tests verts, installé et fonctionnel sur la Remote.
+- Driver complet, 59 tests verts, installé et fonctionnel sur la Remote.
 - Validé contre `tests/denon_simulator.py` (faux Denon en TCP) : connexion, interrogation
   d'état, polling 30 s, reconnexion.
-- **Pas encore testé contre le vrai ampli** — le câble jack 3,5 mm ↔ DB9 n'est pas encore arrivé.
+- **Validé sur le vrai ampli le 01/11/2026** (v0.1.4, Dock 1 `UCD3-0CCD80` en 192.168.2.143:5000) :
+  allumage, source, mode surround, volume, mute et retour d'état dans le widget fonctionnent.
+  Restent à tester : Dynamic Volume / Dynamic EQ, extinction, zones 2/3/4.
 
 ## Architecture
 
@@ -32,8 +34,8 @@ réutilisable depuis Home Assistant ou un CLI :
 - `const.py` : **toutes les tables protocole** (sources, modes, paramètres PS)
 
 **`intg-denon/`** — couche UC, bâtie sur `ucapi-framework` (JackJPowell) :
-- entités : 1 media player, 1 remote (4 pages UI, 151 commandes simples), 15 selects,
-  11 switches, 13 sensors
+- entités : 1 media player, 1 remote (4 pages UI, 162 commandes simples), 18 selects,
+  10 switches, 13 sensors
 - `const.py` : définitions **déclaratives** des entités (`SELECTS`, `SWITCHES`, `SENSORS`)
 - `device.py` : `PersistentConnectionDevice`, debounce des mises à jour, traduction
   libellé ↔ code protocole
@@ -48,9 +50,10 @@ Observés sur une capture RS-232 réelle de l'AVP-A1HD. Ne pas les casser :
 2. **`MVMAX 98`** suit chaque `MV`. Un `startswith("MV")` naïf donnerait −80 dB.
 3. **`MSQUICK1`** porte le préfixe `MS` mais n'est pas un mode surround.
 4. **`SVDVD` / `SVSOURCE`** sont l'affectation vidéo, pas la source (`SI`).
-5. **Séparateurs PS irréguliers** : `PSROOM EQ:AUDYSSEY`, `PSCINEMA EQ.ON`, `PSNIGHT MID`.
-6. **Quirks firmware** : `PSDYN VOL`, `PSDYE ON` → alias vers `DYNVOL` / `DYNEQ`.
-7. **Requêtes sans réponse** (`PSNIGHT ?` observé muet) → architecture 100 % événementielle,
+5. **Séparateurs PS irréguliers** : `PSROOM EQ:AUDYSSEY`, `PSCINEMA EQ.ON`, `PSDSX ONH`.
+6. **`PSDYN VOL`** est le paramètre Dynamic EQ (valeur `VOL`) ; `PSDYNSET` est un autre
+   paramètre (préfixes testés du plus long au plus court). `PSDYE ON` (ligne tronquée) → `DYN`.
+7. **Requêtes sans réponse** (`PSNIGHT ?`, `PSTONE DEFEAT ?` muets) → architecture 100 % événementielle,
    aucune commande n'attend de réponse.
 8. **Après `MVUP`**, l'ampli renvoie l'ancienne puis la nouvelle valeur → debounce 80 ms.
 9. **Note K du protocole** : 4 s de silence imposées après `PWON`.
@@ -69,12 +72,19 @@ Canaux `CV` : code 50 = 0 dB, plage 38..62.
 - Câble retenu : StarTech `9M351M-RS232-CABLE`. Attention, la plupart des cordons génériques
   utilisent la convention inverse (broche 2 → Tip) et nécessiteraient un null-modem.
 - Réglages dock : port 2 en mode RS232 forcé, 9600 8N1, serveur TCP activé. Pas de hot-plug.
+- Ces réglages se font dans **l'interface web du Dock** (http://IP-du-dock, mot de passe du Dock),
+  pas dans la Remote : avec le firmware 0.10.5, la Remote ne propose pas le mode RS232.
+- **Le serveur TCP est une case à part**, « RS232 TCP server (ports 4999, 5000) », décochée par
+  défaut. Sans elle, le port 5000 reste fermé même avec le port en RS232.
+- Si chaque commande revient à l'identique (écho), c'est que le jack n'est pas enfoncé à fond.
 
 ## Points ouverts
 
-1. **Dynamic Volume / Dynamic EQ** : absents du PDF protocole V6. Hypothèses retenues :
-   `PSDYNVOL ON|OFF`, `PSDYNSET DAY|EVE|NGT`, `PSDYNEQ ON|OFF`. À confirmer sur le vrai ampli ;
-   un échec apparaîtra en log comme `Unknown line from unit`.
+1. **L'ampli a reçu le « 3D upgrade »** (nov. 2011) : le protocole de référence est la
+   **version 6.0.2** (PDF dans `ref/`, non versionné ; copie sur le NAS `Téléchargements/denon`).
+   `PSDYN OFF|ON|VOL` (un seul paramètre), `PSDSX`, `PSREFLEV`, `PSFH:`, `PSPHG` ajoutés ;
+   **Night supprimé**. Vérifié en direct le 01/11/2026. L'ancien YAML ESPHome
+   (`denonavp.yaml`) est dans le même dossier.
 2. **Mute, extinction, zones 2/3/4** : jamais déclenchés dans la capture, modélisés depuis le PDF.
 3. **Source list** : les 13 sources non nord-américaines sont présentes. Guillaume élaguera
    ce dont il n'a pas besoin dans `denon_control/const.py::SOURCES` — tout le reste

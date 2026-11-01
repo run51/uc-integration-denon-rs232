@@ -6,7 +6,8 @@ Traps handled here (all observed on a real AVP-A1HD capture):
 * ``MSQUICK1`` uses the ``MS`` prefix but is a Quick Select, not a surround mode.
 * ``SVDVD`` / ``SVSOURCE`` are the video-select assignment, not the input source.
 * ``PS`` parameters use inconsistent separators (``ROOM EQ:AUDYSSEY``,
-  ``CINEMA EQ.ON``, ``NIGHT MID``) and some firmware quirks (``DYN VOL``).
+  ``CINEMA EQ.ON``, ``DSX ONH``); ``PSDYN VOL`` is the Dynamic EQ parameter
+  (value ``VOL``), not ``PSDYNSET``.
 * ``Z2 45`` is a zone volume, ``Z2DVD`` a zone source, ``Z2ON`` a zone power.
 """
 
@@ -209,7 +210,7 @@ def _parse_ps(raw: str) -> DenonEvent:
             value = raw[len(prefix) :].strip()
             return DenonEvent(EventKind.PARAMETER, value, key=key, raw=raw)
 
-    # Firmware quirks: "PSDYN VOL", "PSDYN EQ ON", "PSDYE ON"
+    # Firmware quirks: "PSDYE ON"
     body = raw[2:]
     for alias, key in PS_RESPONSE_ALIASES.items():
         if body.upper().startswith(alias):

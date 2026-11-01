@@ -90,9 +90,16 @@ async def test_full_cycle() -> None:
         # PS select + switch
         await dev.select_option(SELECT_BY_ID["room_eq"], "Flat")
         await _wait_for(lambda: dev.denon.parameters.get("ROOM EQ") == "FLAT")
-        await dev.set_switch(SWITCH_BY_ID["dynamic_eq"], False)
-        await _wait_for(lambda: dev.denon.parameters.get("DYNEQ") == "OFF")
-        assert dev.get_switch_attributes("dynamic_eq")[switch.Attributes.STATE] is switch.States.OFF
+        await dev.select_option(SELECT_BY_ID["dynamic_eq"], "Dynamic EQ")
+        await _wait_for(lambda: dev.denon.parameters.get("DYN") == "ON")
+        dyn = dev.get_select_attributes("dynamic_eq")
+        assert dyn[select.Attributes.CURRENT_OPTION] == "Dynamic EQ"
+        assert dev.get_sensor_attributes("dynamic_eq")["value"] == "Dynamic EQ"
+        await dev.select_option(SELECT_BY_ID["dsx"], "Height")
+        await _wait_for(lambda: dev.denon.parameters.get("DSX") == "ONH")
+        await dev.set_switch(SWITCH_BY_ID["cinema_eq"], True)
+        await _wait_for(lambda: dev.denon.parameters.get("CINEMA EQ") == "ON")
+        assert dev.get_switch_attributes("cinema_eq")[switch.Attributes.STATE] is switch.States.ON
 
         # Mute
         await dev.mute(True)
@@ -114,7 +121,10 @@ async def test_full_cycle() -> None:
         # Raw pass-through + simple command
         assert await dev.send_simple_command("QUICK2")
         await _wait_for(lambda: dev.denon.quick_select == "QUICK2")
-        assert await dev.send_simple_command("PSNIGHT MID")  # raw
+        assert await dev.send_simple_command("DYN_EQ_VOL")
+        await _wait_for(lambda: dev.denon.parameters.get("DYN") == "VOL")
+        assert await dev.send_simple_command("PSDYNSET NGT")  # raw
+        await _wait_for(lambda: dev.denon.parameters.get("DYNSET") == "NGT")
         assert not await dev.send_simple_command("not a command")
 
         # Sensors

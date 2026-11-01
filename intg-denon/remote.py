@@ -9,7 +9,7 @@ from typing import Any
 from const import DeviceConfig, RemoteDef, slug
 from denon_control.const import (
     DYNAMIC_VOLUME_SETTINGS,
-    NIGHT_MODES,
+    REFERENCE_LEVELS,
     ROOM_EQ_MODES,
     SOURCES,
     SURROUND_MODES,
@@ -129,7 +129,7 @@ class DenonRemote(RemoteEntity):
         return page
 
     def _page_audyssey(self) -> UiPage:
-        page = UiPage("audyssey", "Audyssey", grid=Size(4, 8))
+        page = UiPage("audyssey", "Audyssey", grid=Size(4, 12))
         page.add(create_ui_text("-- Room EQ --", 0, 0, Size(4, 1)))
         row = self._grid(
             page,
@@ -139,20 +139,28 @@ class DenonRemote(RemoteEntity):
         )
         page.add(create_ui_text("-- Dynamic EQ / Volume --", 0, row, Size(4, 1)))
         row += 1
-        page.add(create_ui_text("Dyn EQ On", 0, row, Size(2, 1), "DYN_EQ_ON"))
-        page.add(create_ui_text("Dyn EQ Off", 2, row, Size(2, 1), "DYN_EQ_OFF"))
+        page.add(create_ui_text("Off", 0, row, Size(1, 1), "DYN_EQ_OFF"))
+        page.add(create_ui_text("EQ", 1, row, Size(1, 1), "DYN_EQ_ON"))
+        page.add(create_ui_text("EQ + Vol", 2, row, Size(2, 1), "DYN_EQ_VOL"))
         row += 1
-        dyn = [(label, f"DYN_VOL_{slug(code)}") for code, label in DYNAMIC_VOLUME_SETTINGS.items()]
-        dyn.append(("Dyn Vol Off", "DYN_VOL_OFF"))
-        row = self._grid(page, dyn, columns=2, start_row=row)
-        page.add(create_ui_text("-- Night --", 0, row, Size(4, 1)))
+        for col, (code, label) in enumerate(DYNAMIC_VOLUME_SETTINGS.items()):
+            page.add(create_ui_text(label, col, row, Size(1, 1), f"DYN_VOL_{slug(code)}"))
         row += 1
-        self._grid(
-            page,
-            [(label, f"NIGHT_{slug(code)}") for code, label in NIGHT_MODES.items()],
-            columns=4,
-            start_row=row,
-        )
+        page.add(create_ui_text("-- Reference Level --", 0, row, Size(4, 1)))
+        row += 1
+        for col, (code, label) in enumerate(REFERENCE_LEVELS.items()):
+            page.add(create_ui_text(label, col, row, Size(1, 1), f"REF_LEVEL_{code}"))
+        row += 1
+        page.add(create_ui_text("-- Audyssey DSX --", 0, row, Size(4, 1)))
+        row += 1
+        page.add(create_ui_text("Off", 0, row, Size(1, 1), "DSX_OFF"))
+        page.add(create_ui_text("Height", 1, row, Size(1, 1), "DSX_HEIGHT"))
+        page.add(create_ui_text("Wide", 2, row, Size(2, 1), "DSX_WIDE"))
+        row += 1
+        page.add(create_ui_text("W-", 0, row, Size(1, 1), "STAGE_WIDTH_DOWN"))
+        page.add(create_ui_text("W+", 1, row, Size(1, 1), "STAGE_WIDTH_UP"))
+        page.add(create_ui_text("H-", 2, row, Size(1, 1), "STAGE_HEIGHT_DOWN"))
+        page.add(create_ui_text("H+", 3, row, Size(1, 1), "STAGE_HEIGHT_UP"))
         return page
 
     def _page_zones(self) -> UiPage:

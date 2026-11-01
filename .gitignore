@@ -46,3 +46,4 @@ Thumbs.db
 
 # Local Proxmox MCP job database (unrelated to this project)
 proxmox-jobs.sqlite3*
+ref/

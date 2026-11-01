@@ -123,18 +123,27 @@ def test_channel_levels(line: str, channel: str, db: float) -> None:
         ("PSROOM EQ:BYP.LR", "ROOM EQ", "BYP.LR"),
         ("PSRSTR OFF", "RSTR", "OFF"),
         ("PSDYNSET EVE", "DYNSET", "EVE"),
-        ("PSNIGHT MID", "NIGHT", "MID"),
+        ("PSDYNSET NGT", "DYNSET", "NGT"),
         ("PSCINEMA EQ.ON", "CINEMA EQ", "ON"),
         ("PSCINEMA EQ.OFF", "CINEMA EQ", "OFF"),
         ("PSTONE DEFEAT ON", "TONE DEFEAT", "ON"),
         ("PSSB:MTRX ON", "SB", "MTRX ON"),
         ("PSMODE:CINEMA", "MODE", "CINEMA"),
         ("PSDRC AUTO", "DRC", "AUTO"),
-        ("PSDYNEQ ON", "DYNEQ", "ON"),
-        # firmware quirks seen in captures / older YAML
-        ("PSDYE ON", "DYNEQ", "ON"),
-        ("PSDYN EQ OFF", "DYNEQ", "OFF"),
-        ("PSDYN VOL", "DYNVOL", ""),
+        ("PSDCO OFF", "DCO", "OFF"),
+        # 3D upgrade (protocol 6.0.2): a single PSDYN parameter, values from the live unit
+        ("PSDYN OFF", "DYN", "OFF"),
+        ("PSDYN ON", "DYN", "ON"),
+        ("PSDYN VOL", "DYN", "VOL"),
+        ("PSREFLEV 10", "REFLEV", "10"),
+        ("PSDSX OFF", "DSX", "OFF"),
+        ("PSDSX ONH", "DSX", "ONH"),
+        ("PSSTW 50", "STW", "50"),
+        ("PSSTH 45", "STH", "45"),
+        ("PSFH:ON", "FH", "ON"),
+        ("PSPHG MID", "PHG", "MID"),
+        # truncated line seen in an early capture
+        ("PSDYE ON", "DYN", "ON"),
     ],
 )
 def test_ps_parameters(line: str, key: str, value: str) -> None:
@@ -273,8 +282,24 @@ def test_replay_capture_state() -> None:
     assert state.channel_levels["C"] == -12.0
     assert state.parameters["ROOM EQ"] == "AUDYSSEY"
     assert state.parameters["DYNSET"] == "EVE"
+    assert state.parameters["DYN"] == "VOL"  # not "SET EVE" nor a separate DYNVOL key
     assert state.parameters["RSTR"] == "OFF"
     assert device.volume_percent() == 30  # (-50.5 + 80) / 98 * 100 = 30.1
 
     # No UNKNOWN event on the whole capture
     assert not [e for e in events if e.kind is EventKind.UNKNOWN]
+
+
+def test_queries_follow_3d_upgrade_protocol() -> None:
+    """The 3D upgrade (protocol 6.0.2) removed PSNIGHT and never had PSDYNEQ / PSDYNVOL.
+
+    The live unit stays silent on those queries; PSDYN, PSDSX and PSREFLEV answer.
+    """
+    from denon_control.const import PS_PARAMS, STATUS_QUERIES_ON  # noqa: PLC0415
+
+    assert "PSDYN ?" in STATUS_QUERIES_ON
+    assert "PSDSX ?" in STATUS_QUERIES_ON
+    for gone in ("PSNIGHT ?", "PSDYNEQ ?", "PSDYNVOL ?"):
+        assert gone not in STATUS_QUERIES_ON
+    for key in ("NIGHT", "DYNEQ", "DYNVOL"):
+        assert key not in PS_PARAMS

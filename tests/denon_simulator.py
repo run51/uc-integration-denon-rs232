@@ -36,9 +36,10 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
         self.quick = "QUICK1"
         self.ps = {
             "ROOM EQ:": "AUDYSSEY",
-            "DYNEQ ": "ON",
+            "DYN ": "VOL",
             "DYNSET ": "EVE",
-            "NIGHT ": "OFF",
+            "DSX ": "OFF",
+            "REFLEV ": "0",
             "RSTR ": "OFF",
             "CINEMA EQ.": "OFF",
         }
@@ -158,7 +159,7 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
                         self.ps[key] = rest
                         await self.broadcast(f"PS{key}{rest}")
                     return
-            # unknown PS query: silent (PSNIGHT ? was unanswered on the real unit)
+            # unknown PS query: silent (PSNIGHT ? is unanswered since the 3D upgrade)
         elif cmd[:2] in ("Z2", "Z3"):
             zone = int(cmd[1])
             power, src, vol = self.zones[zone]

@@ -18,10 +18,10 @@ jour les entités sans polling agressif (un rafraîchissement toutes les 30 s en
 | Type | Contenu |
 |---|---|
 | **Media player** | Power, volume (0-100 ↔ −80…+18 dB), mute, liste de sources, liste de modes surround, D-pad, menu |
-| **Remote** | Touches physiques mappées, 4 pages UI (Sources, Surround, Audyssey, Quick/Zones), 151 commandes simples, pass-through brut |
-| **15 Selects** | Source, Surround, Input mode, Digital mode, Quick Select, Room EQ, Dynamic Volume, Night, Audio Restorer, PL mode, DRC, D.COMP, sources zones 2/3/4 |
-| **11 Switches** | Mute, Main zone, Dynamic EQ, Dynamic Volume, Cinema EQ, Tone Defeat, zones 2/3/4, mute zones 2/3 |
-| **13 Sensors** | Volume (dB), source, surround, input mode, quick select, Room EQ, Dyn EQ, Dyn Vol, Night, Restorer, zone 2 |
+| **Remote** | Touches physiques mappées, 4 pages UI (Sources, Surround, Audyssey, Quick/Zones), 162 commandes simples, pass-through brut |
+| **18 Selects** | Source, Surround, Input mode, Digital mode, Quick Select, Room EQ, Dynamic EQ (Off / EQ / EQ + Volume), Dynamic Volume (Day / Evening / Midnight), Reference Level, Audyssey DSX, PLIIz Height Gain, Audio Restorer, PL mode, DRC, D.COMP, sources zones 2/3/4 |
+| **10 Switches** | Mute, Main zone, PLIIz Height, Cinema EQ, Tone Defeat, zones 2/3/4, mute zones 2/3 |
+| **13 Sensors** | Volume (dB), source, surround, input mode, quick select, Room EQ, Dyn EQ, Dyn Vol, Audyssey DSX, Restorer, zone 2 |
 
 ## Matériel
 
@@ -158,7 +158,7 @@ raw:MNMEN ON
 ## Tests
 
 ```bash
-pytest                                   # 47 tests : parser (rejoue une capture réelle), transport, bout-en-bout
+pytest                                   # 59 tests : parser (rejoue une capture réelle), transport, bout-en-bout
 python tests/denon_simulator.py 5000     # faux Denon sur TCP pour tester la Remote sans matériel
 ```
 
@@ -173,19 +173,23 @@ Observés sur une capture RS-232 réelle et couverts par des tests :
 - `MVMAX 98` suit chaque `MV` : c'est le maximum, pas le volume.
 - `MSQUICK1` porte le préfixe `MS` mais n'est pas un mode surround.
 - `SVDVD` / `SVSOURCE` sont l'affectation vidéo, pas la source.
-- Séparateurs PS irréguliers : `PSROOM EQ:AUDYSSEY`, `PSCINEMA EQ.ON`, `PSNIGHT MID`.
-- Quirks firmware : `PSDYN VOL`, `PSDYE ON` (alias vers `DYNVOL` / `DYNEQ`).
+- Séparateurs PS irréguliers : `PSROOM EQ:AUDYSSEY`, `PSCINEMA EQ.ON`, `PSDSX ONH`.
+- `PSDYN VOL` est le paramètre Dynamic EQ (valeur `VOL`), à ne pas confondre avec `PSDYNSET`.
 - Après `MVUP`, l'ampli renvoie l'ancienne puis la nouvelle valeur — mises à jour dé-rebondies.
-- Certaines requêtes restent sans réponse (`PSNIGHT ?`) — architecture 100 % événementielle,
+- Certaines requêtes restent sans réponse (`PSNIGHT ?`, `PSTONE DEFEAT ?`) — architecture 100 % événementielle,
   aucune commande n'attend de réponse.
 - 4 s de silence imposées après `PWON` (note K du protocole), puis rafraîchissement complet.
 
-### Incertitudes
+### Protocole « 3D upgrade »
 
-Dynamic Volume / Dynamic EQ ne sont pas dans le PDF V6 du protocole. Le driver utilise
-`PSDYNVOL ON|OFF`, `PSDYNSET DAY|EVE|NGT`, `PSDYNEQ ON|OFF`. Si l'ampli n'en accepte pas un,
-le log affichera `Unknown line from unit` — corriger l'entrée correspondante dans
-`PS_PARAMS` (`denon_control/const.py`).
+Le driver suit le protocole Denon **6.0.2** de l'AVP-A1HD mis à jour (« 3D upgrade » de
+novembre 2011), vérifié sur l'appareil réel le 01/11/2026 :
+
+- Dynamic EQ / Dynamic Volume = **un seul paramètre** `PSDYN OFF|ON|VOL`
+  (`ON` = Dynamic EQ seul, `VOL` = Dynamic EQ + Dynamic Volume), réglage `PSDYNSET DAY|EVE|NGT`.
+- Ajouts : Audyssey DSX `PSDSX OFF|ONH|ONW`, largeur/hauteur de scène `PSSTW` / `PSSTH`,
+  niveau de référence `PSREFLEV 0|5|10|15`, Dolby PLIIz `PSFH:ON|OFF` et `PSPHG LOW|MID|HI`.
+- **Night mode supprimé** par la mise à jour : `PSNIGHT` n'existe plus.
 
 ## Crédits
 

@@ -19,13 +19,16 @@ from denon_control.const import (
     DEFAULT_TCP_PORT,
     DIGITAL_INPUT_MODES,
     DRC_MODES,
+    DSX_MODES,
+    DYNAMIC_EQ_MODES,
     DYNAMIC_VOLUME_SETTINGS,
     INPUT_MODES,
     MENU_COMMANDS,
-    NIGHT_MODES,
     PL_MODES,
+    PLIIZ_HEIGHT_GAINS,
     PS_PARAMS,
     QUICK_SELECTS,
+    REFERENCE_LEVELS,
     RESTORER_MODES,
     ROOM_EQ_MODES,
     SOURCES,
@@ -94,10 +97,23 @@ def _build_simple_commands() -> dict[str, str]:
     ps = {key: prefix for key, (prefix, _q) in PS_PARAMS.items()}
     for code in ROOM_EQ_MODES:
         cmds[f"ROOM_EQ_{slug(code)}"] = f"{ps['ROOM EQ']}{code}"
+    cmds["DYN_EQ_OFF"] = f"{ps['DYN']}OFF"
+    cmds["DYN_EQ_ON"] = f"{ps['DYN']}ON"
+    cmds["DYN_EQ_VOL"] = f"{ps['DYN']}VOL"
     for code in DYNAMIC_VOLUME_SETTINGS:
         cmds[f"DYN_VOL_{slug(code)}"] = f"{ps['DYNSET']}{code}"
-    for code in NIGHT_MODES:
-        cmds[f"NIGHT_{slug(code)}"] = f"{ps['NIGHT']}{code}"
+    for code in REFERENCE_LEVELS:
+        cmds[f"REF_LEVEL_{code}"] = f"{ps['REFLEV']}{code}"
+    cmds["DSX_OFF"] = f"{ps['DSX']}OFF"
+    cmds["DSX_HEIGHT"] = f"{ps['DSX']}ONH"
+    cmds["DSX_WIDE"] = f"{ps['DSX']}ONW"
+    for name, key in (("STAGE_WIDTH", "STW"), ("STAGE_HEIGHT", "STH")):
+        cmds[f"{name}_UP"] = f"{ps[key]}UP"
+        cmds[f"{name}_DOWN"] = f"{ps[key]}DOWN"
+    cmds["PLIIZ_HEIGHT_ON"] = f"{ps['FH']}ON"
+    cmds["PLIIZ_HEIGHT_OFF"] = f"{ps['FH']}OFF"
+    for code in PLIIZ_HEIGHT_GAINS:
+        cmds[f"PLIIZ_GAIN_{slug(code)}"] = f"{ps['PHG']}{code}"
     for code in RESTORER_MODES:
         cmds[f"RESTORER_{slug(code)}"] = f"{ps['RSTR']}{code}"
     for code in PL_MODES:
@@ -107,8 +123,6 @@ def _build_simple_commands() -> dict[str, str]:
     for code in DCOMP_MODES:
         cmds[f"DCOMP_{slug(code)}"] = f"{ps['DCO']}{code}"
     for on_off in ("ON", "OFF"):
-        cmds[f"DYN_EQ_{on_off}"] = f"{ps['DYNEQ']}{on_off}"
-        cmds[f"DYN_VOL_{on_off}"] = f"{ps['DYNVOL']}{on_off}"
         cmds[f"CINEMA_EQ_{on_off}"] = f"{ps['CINEMA EQ']}{on_off}"
         cmds[f"TONE_DEFEAT_{on_off}"] = f"{ps['TONE DEFEAT']}{on_off}"
 
@@ -226,8 +240,11 @@ SELECTS: tuple[SelectConfig, ...] = (
     SelectConfig("digital_mode", "Digital Input Mode", "digital_mode", DIGITAL_INPUT_MODES),
     SelectConfig("quick_select", "Quick Select", "quick", QUICK_SELECTS),
     SelectConfig("room_eq", "Room EQ", "ps", ROOM_EQ_MODES, key="ROOM EQ"),
+    SelectConfig("dynamic_eq", "Dynamic EQ", "ps", DYNAMIC_EQ_MODES, key="DYN"),
     SelectConfig("dynamic_volume", "Dynamic Volume", "ps", DYNAMIC_VOLUME_SETTINGS, key="DYNSET"),
-    SelectConfig("night_mode", "Night Mode", "ps", NIGHT_MODES, key="NIGHT"),
+    SelectConfig("reference_level", "Reference Level", "ps", REFERENCE_LEVELS, key="REFLEV"),
+    SelectConfig("dsx", "Audyssey DSX", "ps", DSX_MODES, key="DSX"),
+    SelectConfig("pliiz_gain", "PLIIz Height Gain", "ps", PLIIZ_HEIGHT_GAINS, key="PHG"),
     SelectConfig("audio_restorer", "Audio Restorer", "ps", RESTORER_MODES, key="RSTR"),
     SelectConfig("pl_mode", "PL Mode", "ps", PL_MODES, key="MODE"),
     SelectConfig("drc", "DRC", "ps", DRC_MODES, key="DRC"),
@@ -261,8 +278,7 @@ class SwitchConfig:
 SWITCHES: tuple[SwitchConfig, ...] = (
     SwitchConfig("mute", "Mute", "mute"),
     SwitchConfig("main_zone", "Main Zone", "main_zone"),
-    SwitchConfig("dynamic_eq", "Dynamic EQ", "ps", key="DYNEQ"),
-    SwitchConfig("dynamic_volume_enabled", "Dynamic Volume", "ps", key="DYNVOL"),
+    SwitchConfig("pliiz_height", "PLIIz Height", "ps", key="FH"),
     SwitchConfig("cinema_eq", "Cinema EQ", "ps", key="CINEMA EQ"),
     SwitchConfig("tone_defeat", "Tone Defeat", "ps", key="TONE DEFEAT"),
     SwitchConfig("zone2_power", "Zone 2", "zone_power", key="2"),
@@ -300,9 +316,9 @@ SENSORS: tuple[SensorConfig, ...] = (
     SensorConfig("digital_mode", "Digital Input Mode", labels=DIGITAL_INPUT_MODES),
     SensorConfig("quick_select", "Quick Select", labels=QUICK_SELECTS),
     SensorConfig("room_eq", "Room EQ", labels=ROOM_EQ_MODES),
-    SensorConfig("dynamic_eq", "Dynamic EQ"),
+    SensorConfig("dynamic_eq", "Dynamic EQ", labels=DYNAMIC_EQ_MODES),
     SensorConfig("dynamic_volume", "Dynamic Volume", labels=DYNAMIC_VOLUME_SETTINGS),
-    SensorConfig("night_mode", "Night Mode", labels=NIGHT_MODES),
+    SensorConfig("dsx", "Audyssey DSX", labels=DSX_MODES),
     SensorConfig("audio_restorer", "Audio Restorer", labels=RESTORER_MODES),
     SensorConfig("zone2_source", "Zone 2 Source", labels=ZONE_SOURCE_OPTIONS),
     SensorConfig("zone2_volume_db", "Zone 2 Volume", unit="dB"),

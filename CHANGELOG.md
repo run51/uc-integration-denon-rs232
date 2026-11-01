@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.5
+
+- Protocole « 3D upgrade » (Denon 6.0.2) de l'AVP-A1HD, vérifié sur l'ampli réel :
+  - Dynamic EQ / Dynamic Volume deviennent un seul sélecteur `PSDYN` :
+    Off / Dynamic EQ / Dynamic EQ + Volume (les anciennes commandes `PSDYNEQ` / `PSDYNVOL`
+    n'existaient pas). Le réglage Day / Evening / Midnight (`PSDYNSET`) est inchangé.
+  - Ajout d'Audyssey DSX (Off / Height / Wide, largeur et hauteur de scène), du niveau de
+    référence Dynamic EQ (0 / 5 / 10 / 15 dB) et de Dolby PLIIz Height (marche/arrêt, gain).
+  - Retrait du mode Night, supprimé par la mise à jour de l'ampli.
+- Page « Audyssey » de la télécommande refaite en conséquence.
+
 ## v0.1.4
 
 - Le widget du lecteur multimédia affiche l'état de l'ampli : source (ligne titre),

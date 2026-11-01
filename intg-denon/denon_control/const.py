@@ -1,7 +1,10 @@
 """Denon AVP-A1HD RS-232 protocol tables.
 
-Source: "DENON AVP control protocol" V6.0.0 (AVP-A1HD / AVP-A1HDCI) plus
-observed behaviour of the unit on a live RS-232 capture.
+Source: "DENON AVP control protocol" Rev 6.0.2 for the AVP-A1HD *3D upgrade*
+(SPK-592, November 2011) plus observed behaviour of the unit on live RS-232
+captures.  The upgrade added Audyssey DSX, Dynamic EQ reference level, Dolby
+PLIIz height and DTS Neo:X, merged Dynamic EQ / Dynamic Volume into a single
+``PSDYN`` parameter and removed Night mode (``PSNIGHT``).
 
 Every command is ASCII, terminated by <CR> (0x0D).  The unit answers each
 query with a RESPONSE and pushes unsolicited EVENTs whenever its state changes.
@@ -132,23 +135,27 @@ DIGITAL_INPUT_MODES: dict[str, str] = {
 
 # --- PS parameters -----------------------------------------------------------
 # The PS family is irregular: the separator between key and value differs
-# ("ROOM EQ:AUDYSSEY", "CINEMA EQ.ON", "NIGHT MID", "SB:MTRX ON").
+# ("ROOM EQ:AUDYSSEY", "CINEMA EQ.ON", "DSX ONH", "SB:MTRX ON").
 #
 # Each entry:  canonical key -> (command prefix, query string, separator used by
 # the unit in its responses).  The parser matches responses against the command
 # prefix (longest first) and strips the separator.
 #
-# Keys normalised by the parser (observed firmware quirks):
-#   "DYN EQ"  -> DYNEQ      "DYN VOL" -> DYNVOL      "DYE" -> DYNEQ
+# Prefixes are matched longest first, so "PSDYNSET EVE" is never read as
+# "PSDYN" with value "SET EVE".
 PS_PARAMS: dict[str, tuple[str, str]] = {
     # key:        (command prefix incl. separator, query)
     "ROOM EQ": ("PSROOM EQ:", "PSROOM EQ: ?"),
     "CINEMA EQ": ("PSCINEMA EQ.", "PSCINEMA EQ. ?"),
     "TONE DEFEAT": ("PSTONE DEFEAT ", "PSTONE DEFEAT ?"),
-    "DYNEQ": ("PSDYNEQ ", "PSDYNEQ ?"),
-    "DYNVOL": ("PSDYNVOL ", "PSDYNVOL ?"),
+    "DYN": ("PSDYN ", "PSDYN ?"),  # OFF / ON (Dyn EQ) / VOL (Dyn EQ + Dyn Volume)
     "DYNSET": ("PSDYNSET ", "PSDYNSET ?"),
-    "NIGHT": ("PSNIGHT ", "PSNIGHT ?"),
+    "REFLEV": ("PSREFLEV ", "PSREFLEV ?"),
+    "DSX": ("PSDSX ", "PSDSX ?"),
+    "STW": ("PSSTW ", "PSSTW ?"),
+    "STH": ("PSSTH ", "PSSTH ?"),
+    "FH": ("PSFH:", "PSFH: ?"),
+    "PHG": ("PSPHG ", "PSPHG ?"),
     "RSTR": ("PSRSTR ", "PSRSTR ?"),
     "MODE": ("PSMODE:", "PSMODE: ?"),
     "SB": ("PSSB:", "PSSB: ?"),
@@ -172,9 +179,7 @@ PS_PARAMS: dict[str, tuple[str, str]] = {
 
 # Response-side aliases -> canonical key (firmware quirks observed in captures).
 PS_RESPONSE_ALIASES: dict[str, str] = {
-    "DYN EQ": "DYNEQ",
-    "DYN VOL": "DYNVOL",
-    "DYE": "DYNEQ",
+    "DYE": "DYN",  # truncated "PSDYE ON" seen in an early capture
 }
 
 ROOM_EQ_MODES: dict[str, str] = {
@@ -185,18 +190,43 @@ ROOM_EQ_MODES: dict[str, str] = {
     "OFF": "Off",
 }
 
+# PSDYN: a single parameter since the 3D upgrade (protocol 6.0.2 p.15).
+DYNAMIC_EQ_MODES: dict[str, str] = {
+    "OFF": "Off",
+    "ON": "Dynamic EQ",
+    "VOL": "Dynamic EQ + Volume",
+}
+
 DYNAMIC_VOLUME_SETTINGS: dict[str, str] = {
     "DAY": "Day",
     "EVE": "Evening",
-    "NGT": "Night",
+    "NGT": "Midnight",
 }
 
-NIGHT_MODES: dict[str, str] = {
+# Dynamic EQ reference level offset (dB).
+REFERENCE_LEVELS: dict[str, str] = {
+    "0": "0 dB",
+    "5": "5 dB",
+    "10": "10 dB",
+    "15": "15 dB",
+}
+
+# Audyssey DSX ("3D"): height or wide channels.
+DSX_MODES: dict[str, str] = {
     "OFF": "Off",
+    "ONH": "Height",
+    "ONW": "Wide",
+}
+
+# Dolby PLIIz height gain.
+PLIIZ_HEIGHT_GAINS: dict[str, str] = {
     "LOW": "Low",
     "MID": "Mid",
     "HI": "High",
 }
+
+# Stage width / height (Audyssey DSX): 40..60, 50 = 0 dB.
+STAGE_ZERO_DB_CODE = 50
 
 RESTORER_MODES: dict[str, str] = {
     "OFF": "Off",
@@ -253,10 +283,14 @@ STATUS_QUERIES_ON = (
     "DC?",
     "MSQUICK ?",
     "PSROOM EQ: ?",
-    "PSDYNEQ ?",
-    "PSDYNVOL ?",
+    "PSDYN ?",
     "PSDYNSET ?",
-    "PSNIGHT ?",
+    "PSREFLEV ?",
+    "PSDSX ?",
+    "PSSTW ?",
+    "PSSTH ?",
+    "PSFH: ?",
+    "PSPHG ?",
     "PSRSTR ?",
     "PSCINEMA EQ. ?",
     "PSTONE DEFEAT ?",
