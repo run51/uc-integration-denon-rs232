@@ -30,7 +30,13 @@ from const import (
     SwitchConfig,
 )
 from denon_control import DenonDevice, DenonEvent, DenonState, EventKind
-from denon_control.const import POWER_ON_SETTLE_S, SOURCES, SURROUND_MODES
+from denon_control.const import (
+    DYNAMIC_VOLUME_SETTINGS,
+    POWER_ON_SETTLE_S,
+    ROOM_EQ_MODES,
+    SOURCES,
+    SURROUND_MODES,
+)
 from ucapi import media_player, select, sensor, switch
 from ucapi_framework import BaseConfigManager, BaseIntegrationDriver, PersistentConnectionDevice
 
@@ -301,7 +307,10 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         return attrs
 
     def _media_info_attributes(self) -> dict[media_player.Attributes, str]:
-        """Show source / surround mode / volume in the title / artist / album lines.
+        """Show the unit state in the media widget title / artist / album lines.
+
+        Line 1: source. Line 2: surround mode · Room EQ.
+        Line 3: volume · Muted · Dynamic EQ (+ Dynamic Volume level).
 
         The media widget on activity pages only displays these text fields, so this
         is how the unit's state becomes visible without opening the entity.
@@ -315,16 +324,29 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
                 media_player.Attributes.MEDIA_ALBUM: "",
             }
         volume = "" if st.volume_db is None else f"{st.volume_db:.1f} dB"
+        line3 = [volume] if volume else []
         if st.muted:
-            volume = f"{volume} · Muted" if volume else "Muted"
+            line3.append("Muted")
+        dyn = (st.parameters.get("DYN") or "").upper()
+        if dyn == "ON":
+            line3.append("Dyn EQ")
+        elif dyn == "VOL":
+            level = DYNAMIC_VOLUME_SETTINGS.get((st.parameters.get("DYNSET") or "").upper())
+            line3.append(f"Dyn EQ + Vol ({level})" if level else "Dyn EQ + Vol")
+
+        line2 = []
+        if st.surround:
+            line2.append(SURROUND_MODES.get(st.surround, st.surround.title()))
+        room_eq = (st.parameters.get("ROOM EQ") or "").upper()
+        if room_eq:
+            line2.append(ROOM_EQ_MODES.get(room_eq, room_eq.title()))
+
         return {
             media_player.Attributes.MEDIA_TITLE: (
                 SOURCES.get(st.source, st.source) if st.source else ""
             ),
-            media_player.Attributes.MEDIA_ARTIST: (
-                SURROUND_MODES.get(st.surround, st.surround.title()) if st.surround else ""
-            ),
-            media_player.Attributes.MEDIA_ALBUM: volume,
+            media_player.Attributes.MEDIA_ARTIST: " · ".join(line2),
+            media_player.Attributes.MEDIA_ALBUM: " · ".join(line3),
         }
 
     def _select_current_code(self, cfg: SelectConfig) -> str | None:

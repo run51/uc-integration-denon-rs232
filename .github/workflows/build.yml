@@ -156,6 +156,10 @@ jobs:
         with:
           artifacts: "*.tar.gz,${{ needs.build.outputs.driver_id }}.hash"
           draft: false
+          # Test builds (version containing "test", e.g. 0.1.8-test1) are pre-releases:
+          # never shown as the latest version.
+          prerelease: ${{ contains(needs.build.outputs.version, 'test') }}
+          makeLatest: ${{ contains(needs.build.outputs.version, 'test') && 'false' || 'true' }}
           bodyFile: release_notes.md
           generateReleaseNotes: false
           artifactErrorsFailBuild: true
