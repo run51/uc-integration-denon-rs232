@@ -114,14 +114,14 @@ async def test_full_cycle() -> None:
         mp = dev.get_media_player_attributes()
         assert mp[media_player.Attributes.MUTED] is True
 
-        # Media widget lines: source / surround · Room EQ / volume · mute · Dynamic EQ
-        assert mp[media_player.Attributes.MEDIA_TITLE] == "TV/CBL"
-        assert mp[media_player.Attributes.MEDIA_ARTIST] == "7ch Stereo · Flat"
-        assert mp[media_player.Attributes.MEDIA_ALBUM] == "-31.0 dB · Muted · Dyn EQ"
+        # Media widget (2 lines): source · volume · mute / surround · Room EQ · Dynamic EQ
+        assert mp[media_player.Attributes.MEDIA_TITLE] == "TV/CBL · -31.0 dB · Muted"
+        assert mp[media_player.Attributes.MEDIA_ARTIST] == "7ch Stereo · Flat · Dyn EQ"
+        assert mp[media_player.Attributes.MEDIA_ALBUM] == ""
         await dev.select_option(SELECT_BY_ID["dynamic_volume"], "Midnight")
         await _wait_for(lambda: dev.denon.parameters.get("DYNSET") == "NGT")
         mp = dev.get_media_player_attributes()
-        assert mp[media_player.Attributes.MEDIA_ALBUM] == "-31.0 dB · Muted · Dyn EQ + Vol (Midnight)"
+        assert mp[media_player.Attributes.MEDIA_ARTIST] == "7ch Stereo · Flat · Dyn EQ+Vol Midnight"
 
         # Zone 2
         await dev.set_switch(SWITCH_BY_ID["zone2_power"], True)

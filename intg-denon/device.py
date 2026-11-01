@@ -307,13 +307,11 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         return attrs
 
     def _media_info_attributes(self) -> dict[media_player.Attributes, str]:
-        """Show the unit state in the media widget title / artist / album lines.
+        """Show the unit state in the two text lines of the media widget.
 
-        Line 1: source. Line 2: surround mode · Room EQ.
-        Line 3: volume · Muted · Dynamic EQ (+ Dynamic Volume level).
-
-        The media widget on activity pages only displays these text fields, so this
-        is how the unit's state becomes visible without opening the entity.
+        The Remote 3 media widget only displays the title and artist lines:
+        Line 1 (title): source · volume · Muted.
+        Line 2 (artist): surround mode · Room EQ · Dynamic EQ (+ Dynamic Volume level).
         Cleared outside of ON so standby does not show stale values.
         """
         st = self.denon
@@ -323,16 +321,11 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
                 media_player.Attributes.MEDIA_ARTIST: "",
                 media_player.Attributes.MEDIA_ALBUM: "",
             }
-        volume = "" if st.volume_db is None else f"{st.volume_db:.1f} dB"
-        line3 = [volume] if volume else []
+        line1 = [SOURCES.get(st.source, st.source)] if st.source else []
+        if st.volume_db is not None:
+            line1.append(f"{st.volume_db:.1f} dB")
         if st.muted:
-            line3.append("Muted")
-        dyn = (st.parameters.get("DYN") or "").upper()
-        if dyn == "ON":
-            line3.append("Dyn EQ")
-        elif dyn == "VOL":
-            level = DYNAMIC_VOLUME_SETTINGS.get((st.parameters.get("DYNSET") or "").upper())
-            line3.append(f"Dyn EQ + Vol ({level})" if level else "Dyn EQ + Vol")
+            line1.append("Muted")
 
         line2 = []
         if st.surround:
@@ -340,13 +333,17 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         room_eq = (st.parameters.get("ROOM EQ") or "").upper()
         if room_eq:
             line2.append(ROOM_EQ_MODES.get(room_eq, room_eq.title()))
+        dyn = (st.parameters.get("DYN") or "").upper()
+        if dyn == "ON":
+            line2.append("Dyn EQ")
+        elif dyn == "VOL":
+            level = DYNAMIC_VOLUME_SETTINGS.get((st.parameters.get("DYNSET") or "").upper())
+            line2.append(f"Dyn EQ+Vol {level}" if level else "Dyn EQ+Vol")
 
         return {
-            media_player.Attributes.MEDIA_TITLE: (
-                SOURCES.get(st.source, st.source) if st.source else ""
-            ),
+            media_player.Attributes.MEDIA_TITLE: " · ".join(line1),
             media_player.Attributes.MEDIA_ARTIST: " · ".join(line2),
-            media_player.Attributes.MEDIA_ALBUM: " · ".join(line3),
+            media_player.Attributes.MEDIA_ALBUM: "",
         }
 
     def _select_current_code(self, cfg: SelectConfig) -> str | None:

@@ -1,6 +1,6 @@
 {
   "driver_id": "denon_rs232",
-  "version": "0.1.8-test1",
+  "version": "0.1.8-test2",
   "min_core_api": "0.20.0",
   "name": {
     "en": "Denon AVP-A1HD (RS-232)",
