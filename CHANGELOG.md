@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.7
+
+- Retour d'Audyssey DSX (sélecteur, capteur, commandes, boutons de la page Audyssey) :
+  le driver est publié et doit exposer toutes les fonctions de l'ampli, même celles
+  qu'une installation donnée n'utilise pas.
+
 ## v0.1.6
 
 - Dynamic Volume : choisir Day / Evening / Midnight active automatiquement

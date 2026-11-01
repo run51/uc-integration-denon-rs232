@@ -95,6 +95,8 @@ async def test_full_cycle() -> None:
         dyn = dev.get_select_attributes("dynamic_eq")
         assert dyn[select.Attributes.CURRENT_OPTION] == "Dynamic EQ"
         assert dev.get_sensor_attributes("dynamic_eq")["value"] == "Dynamic EQ"
+        await dev.select_option(SELECT_BY_ID["dsx"], "Height")
+        await _wait_for(lambda: dev.denon.parameters.get("DSX") == "ONH")
         # Dynamic Volume level while Dynamic EQ alone is on: the unit would
         # ignore PSDYNSET, so the driver enables PSDYN VOL first.
         await dev.select_option(SELECT_BY_ID["dynamic_volume"], "Day")

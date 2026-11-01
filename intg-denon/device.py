@@ -415,6 +415,8 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
                 return label(st.parameters.get("DYN"))
             case "dynamic_volume":
                 return label(st.parameters.get("DYNSET"))
+            case "dsx":
+                return label(st.parameters.get("DSX"))
             case "audio_restorer":
                 return label(st.parameters.get("RSTR"))
             case "zone2_source":

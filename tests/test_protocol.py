@@ -293,11 +293,12 @@ def test_replay_capture_state() -> None:
 def test_queries_follow_3d_upgrade_protocol() -> None:
     """The 3D upgrade (protocol 6.0.2) removed PSNIGHT and never had PSDYNEQ / PSDYNVOL.
 
-    The live unit stays silent on those queries; PSDYN and PSREFLEV answer.
+    The live unit stays silent on those queries; PSDYN, PSDSX and PSREFLEV answer.
     """
     from denon_control.const import PS_PARAMS, STATUS_QUERIES_ON  # noqa: PLC0415
 
     assert "PSDYN ?" in STATUS_QUERIES_ON
+    assert "PSDSX ?" in STATUS_QUERIES_ON
     for gone in ("PSNIGHT ?", "PSDYNEQ ?", "PSDYNVOL ?"):
         assert gone not in STATUS_QUERIES_ON
     for key in ("NIGHT", "DYNEQ", "DYNVOL"):

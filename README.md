@@ -18,10 +18,10 @@ jour les entités sans polling agressif (un rafraîchissement toutes les 30 s en
 | Type | Contenu |
 |---|---|
 | **Media player** | Power, volume (0-100 ↔ −80…+18 dB), mute, liste de sources, liste de modes surround, D-pad, menu |
-| **Remote** | Touches physiques mappées, 4 pages UI (Sources, Surround, Audyssey, Quick/Zones), 155 commandes simples, pass-through brut |
-| **17 Selects** | Source, Surround, Input mode, Digital mode, Quick Select, Room EQ, Dynamic EQ (Off / EQ / EQ + Volume), Dynamic Volume (Day / Evening / Midnight), Reference Level, PLIIz Height Gain, Audio Restorer, PL mode, DRC, D.COMP, sources zones 2/3/4 |
+| **Remote** | Touches physiques mappées, 4 pages UI (Sources, Surround, Audyssey, Quick/Zones), 162 commandes simples, pass-through brut |
+| **18 Selects** | Source, Surround, Input mode, Digital mode, Quick Select, Room EQ, Dynamic EQ (Off / EQ / EQ + Volume), Dynamic Volume (Day / Evening / Midnight), Reference Level, Audyssey DSX, PLIIz Height Gain, Audio Restorer, PL mode, DRC, D.COMP, sources zones 2/3/4 |
 | **10 Switches** | Mute, Main zone, PLIIz Height, Cinema EQ, Tone Defeat, zones 2/3/4, mute zones 2/3 |
-| **12 Sensors** | Volume (dB), source, surround, input mode, quick select, Room EQ, Dyn EQ, Dyn Vol, Restorer, zone 2 |
+| **13 Sensors** | Volume (dB), source, surround, input mode, quick select, Room EQ, Dyn EQ, Dyn Vol, Audyssey DSX, Restorer, zone 2 |
 
 ## Matériel
 

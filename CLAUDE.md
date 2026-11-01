@@ -22,7 +22,11 @@ L'objectif est de supprimer l'ESP **et** la machine Home Assistant de la chaîne
   allumage, source, mode surround, volume, mute et retour d'état dans le widget fonctionnent.
   Dynamic EQ, Dynamic Volume et Reference Level validés en v0.1.5/0.1.6.
   Restent à tester : extinction, zones 2/3/4.
-- **Audyssey DSX non exposé** (v0.1.6) : indisponible sur l'installation de Guillaume.
+- **Le driver est publié : il expose TOUTES les fonctions de l'ampli** (DSX, zones 2/3/4…),
+  même celles que Guillaume n'utilise pas. Ne rien retirer du driver pour son usage perso ;
+  adapter plutôt ses activités/pages. (DSX retiré en 0.1.6 puis rétabli en 0.1.7.)
+- Guillaume a une **Remote 3 : pas de touches de couleur** (le mapping rouge/vert/jaune → Quick
+  ne sert qu'aux Remote Two). Les Quick 1-3 passent par les pages UI.
 
 ## Architecture
 
@@ -36,8 +40,8 @@ réutilisable depuis Home Assistant ou un CLI :
 - `const.py` : **toutes les tables protocole** (sources, modes, paramètres PS)
 
 **`intg-denon/`** — couche UC, bâtie sur `ucapi-framework` (JackJPowell) :
-- entités : 1 media player, 1 remote (4 pages UI, 155 commandes simples), 17 selects,
-  10 switches, 12 sensors
+- entités : 1 media player, 1 remote (4 pages UI, 162 commandes simples), 18 selects,
+  10 switches, 13 sensors
 - `const.py` : définitions **déclaratives** des entités (`SELECTS`, `SWITCHES`, `SENSORS`)
 - `device.py` : `PersistentConnectionDevice`, debounce des mises à jour, traduction
   libellé ↔ code protocole
