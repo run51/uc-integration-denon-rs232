@@ -20,7 +20,7 @@ L'objectif est de supprimer l'ESP **et** la machine Home Assistant de la chaîne
   d'état, polling 30 s, reconnexion.
 - **Validé sur le vrai ampli le 01/11/2026** (v0.1.4, Dock 1 `UCD3-0CCD80` en 192.168.2.143:5000) :
   allumage, source, mode surround, volume, mute et retour d'état dans le widget fonctionnent.
-  Dynamic EQ, Dynamic Volume et Reference Level validés en v0.1.5/0.1.6.
+  Dynamic EQ, Dynamic Volume, Reference Level (v0.1.6) et Quick 1-3 (v0.1.7) validés.
   Restent à tester : extinction, zones 2/3/4.
 - **Le driver est publié : il expose TOUTES les fonctions de l'ampli** (DSX, zones 2/3/4…),
   même celles que Guillaume n'utilise pas. Ne rien retirer du driver pour son usage perso ;
