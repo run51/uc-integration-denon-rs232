@@ -331,7 +331,9 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         if st.surround:
             line2.append(SURROUND_MODES.get(st.surround, st.surround.title()))
         room_eq = (st.parameters.get("ROOM EQ") or "").upper()
-        if room_eq:
+        if room_eq == "OFF":
+            line2.append("EQ Off")  # a bare "Off" is meaningless on the widget
+        elif room_eq:
             line2.append(ROOM_EQ_MODES.get(room_eq, room_eq.title()))
         dyn = (st.parameters.get("DYN") or "").upper()
         if dyn == "ON":

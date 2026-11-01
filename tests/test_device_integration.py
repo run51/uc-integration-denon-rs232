@@ -122,6 +122,12 @@ async def test_full_cycle() -> None:
         await _wait_for(lambda: dev.denon.parameters.get("DYNSET") == "NGT")
         mp = dev.get_media_player_attributes()
         assert mp[media_player.Attributes.MEDIA_ARTIST] == "7ch Stereo · Flat · Dyn EQ+Vol Midnight"
+        await dev.select_option(SELECT_BY_ID["room_eq"], "Off")
+        await _wait_for(lambda: dev.denon.parameters.get("ROOM EQ") == "OFF")
+        mp = dev.get_media_player_attributes()
+        assert mp[media_player.Attributes.MEDIA_ARTIST] == "7ch Stereo · EQ Off · Dyn EQ+Vol Midnight"
+        await dev.select_option(SELECT_BY_ID["room_eq"], "Flat")
+        await _wait_for(lambda: dev.denon.parameters.get("ROOM EQ") == "FLAT")
 
         # Zone 2
         await dev.set_switch(SWITCH_BY_ID["zone2_power"], True)
