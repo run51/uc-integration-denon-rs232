@@ -43,6 +43,11 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
             "RSTR ": "OFF",
             "CINEMA EQ.": "OFF",
         }
+        self.channels = {
+            "FL": "405", "FR": "41", "C": "38", "SW1": "38", "SW2": "50", "SW3": "50",
+            "TR": "50", "SL": "40", "SR": "41", "SBL": "50", "SBR": "50", "SB": "50",
+            "FHL": "50", "FHR": "50", "FWL": "50", "FWR": "50",
+        }
         self.zones = {2: (False, "SOURCE", 45.0), 3: (False, "SOURCE", 45.0)}
         self.clients: set[asyncio.StreamWriter] = set()
 
@@ -75,11 +80,7 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
         return [f"MV{self.fmt(self.volume)}", "MVMAX 98"]
 
     def channel_levels(self) -> list[str]:
-        return [
-            "CVFL 405", "CVFR 41", "CVC 38", "CVSW1 38", "CVSW2 50", "CVTR 50",
-            "CVSL 40", "CVSR 41", "CVSBL 50", "CVSBR 50", "CVSB 50",
-            "CVFHL 50", "CVFHR 50", "CVFWL 50", "CVFWR 50",
-        ]
+        return [f"CV{ch} {code}" for ch, code in self.channels.items()]
 
     # ------------------------------------------------------------ commands
 
@@ -129,6 +130,13 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
             self.source = cmd[2:]
             await self.broadcast(f"SI{self.source}", f"SV{self.source}", f"MS{self.surround}")
             await self.broadcast(*self.channel_levels())
+        elif cmd == "CV?":
+            await self.broadcast(*self.channel_levels())
+        elif cmd.startswith("CV") and " " in cmd:
+            ch, code = cmd[2:].split(" ", 1)
+            if ch in self.channels and code.isdigit():
+                self.channels[ch] = code
+                await self.broadcast(f"CV{ch} {code}")
         elif cmd == "SD?":
             await self.broadcast(f"SD{self.input_mode}")
         elif cmd.startswith("SD"):
