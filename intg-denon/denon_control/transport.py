@@ -24,6 +24,7 @@ _LOG = logging.getLogger(__name__)
 LineCallback = Callable[[str], Awaitable[None] | None]
 
 CONNECT_TIMEOUT_S = 5.0
+WRITE_TIMEOUT_S = 5.0
 FRAME_TERMINATORS = (b"\r", b"\n")
 MAX_BUFFER = 4096
 
@@ -53,6 +54,7 @@ class TcpTransport:
         self._write_lock = asyncio.Lock()
         self._last_write = 0.0
         self._hold_until = 0.0
+        self._last_rx = time.monotonic()
 
     # ------------------------------------------------------------------ props
 
@@ -70,6 +72,11 @@ class TcpTransport:
     def is_connected(self) -> bool:
         """True while the socket is open."""
         return self._writer is not None and not self._closed.is_set()
+
+    @property
+    def seconds_since_rx(self) -> float:
+        """Seconds since the last byte was received (or since connection)."""
+        return time.monotonic() - self._last_rx
 
     def set_line_callback(self, callback: LineCallback | None) -> None:
         """Register the per-line callback."""
@@ -90,6 +97,7 @@ class TcpTransport:
         self._reader = reader
         self._writer = writer
         self._closed.clear()
+        self._last_rx = time.monotonic()
         self._read_task = asyncio.create_task(
             self._read_loop(), name=f"denon-rx-{self._host}:{self._port}"
         )
@@ -148,8 +156,8 @@ class TcpTransport:
 
             try:
                 self._writer.write(payload.encode("latin-1"))
-                await self._writer.drain()
-            except (ConnectionError, OSError) as err:
+                await asyncio.wait_for(self._writer.drain(), timeout=WRITE_TIMEOUT_S)
+            except (ConnectionError, OSError, TimeoutError) as err:
                 await self._close_writer()
                 raise ConnectionError(f"Write failed: {err}") from err
 
@@ -171,6 +179,7 @@ class TcpTransport:
                     break
 
                 buffer.extend(chunk)
+                self._last_rx = time.monotonic()
 
                 while True:
                     cut = -1

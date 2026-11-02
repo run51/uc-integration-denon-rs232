@@ -50,6 +50,8 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
         }
         self.zones = {2: (False, "SOURCE", 45.0), 3: (False, "SOURCE", 45.0)}
         self.clients: set[asyncio.StreamWriter] = set()
+        self.connections = 0  # total accepted connections
+        self.silent = False  # simulate a dead (half-open) link: ignore everything
 
     # ------------------------------------------------------------ helpers
 
@@ -86,6 +88,8 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
 
     async def handle(self, cmd: str) -> None:  # pylint: disable=too-many-branches,too-many-statements
         _LOG.debug(">>> %s", cmd)
+        if self.silent:
+            return
 
         if cmd == "PW?":
             await self.broadcast("PWON" if self.power else "PWSTANDBY")
@@ -201,6 +205,7 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
         peer = writer.get_extra_info("peername")
         _LOG.info("client connected: %s", peer)
         self.clients.add(writer)
+        self.connections += 1
         buffer = b""
         try:
             while True:

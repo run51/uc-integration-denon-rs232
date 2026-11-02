@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.10
+
+- Fixed: the driver could stay disconnected after the Remote woke up from standby (or after
+  the integration was restarted). The framework runs disconnect and connect as concurrent
+  tasks; a connect arriving while the disconnect was still running was lost. Both are now
+  serialised.
+- A link that stays silent for more than 75 s (half-open TCP connection, bridge rebooted…)
+  is now detected and rebuilt: the unit always answers the 30 s `PW?` poll.
+- Writes to the bridge time out after 5 s instead of waiting forever.
+- Channel levels are queried at startup (`CV?`); SW3 added to the channel list.
+
 ## v0.1.9
 
 - Renamed "Denon AV receivers & processors (RS-232)": the driver is built on the

@@ -100,6 +100,11 @@ class DenonDevice:  # pylint: disable=too-many-public-methods
         return self._transport.is_connected
 
     @property
+    def seconds_since_rx(self) -> float:
+        """Seconds since the unit last sent anything."""
+        return self._transport.seconds_since_rx
+
+    @property
     def host(self) -> str:
         """Bridge host."""
         return self._transport.host

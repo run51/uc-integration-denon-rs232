@@ -167,3 +167,61 @@ async def test_full_cycle() -> None:
         await dev.disconnect()
         server.close()
         await server.wait_closed()
+
+
+@pytest.mark.asyncio
+async def test_reconnects_after_overlapping_disconnect_connect() -> None:
+    """Remote standby / integration restart: disconnect and connect overlap.
+
+    The framework runs both as concurrent tasks. A connect() that arrives while
+    disconnect() is still tearing the link down must not be lost.
+    """
+    sim = DenonSim()
+    sim.power = True
+    server = await asyncio.start_server(sim.client, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    cfg = DeviceConfig(identifier="denon_race", name="Denon Race", address="127.0.0.1", port=port)
+    dev = DenonClientDevice(cfg, asyncio.get_event_loop())
+    try:
+        await dev.connect()
+        await _wait_for(lambda: dev.is_connected and dev.denon.power is True)
+
+        loop = asyncio.get_event_loop()
+        loop.create_task(dev.disconnect())  # on_r2_disconnect_cmd / enter_standby
+        loop.create_task(dev.connect())  # on_r2_connect_cmd / exit_standby
+        await asyncio.sleep(0.5)
+
+        await _wait_for(lambda: dev.is_connected and dev.state is media_player.States.ON, timeout=8)
+    finally:
+        await dev.disconnect()
+        server.close()
+        await server.wait_closed()
+
+
+@pytest.mark.asyncio
+async def test_reconnects_when_link_goes_silent(monkeypatch) -> None:
+    """A half-open link (no error, no data) is detected and rebuilt."""
+    import device as device_module  # noqa: PLC0415
+
+    monkeypatch.setattr(device_module, "POLL_INTERVAL_S", 0.3)
+    monkeypatch.setattr(device_module, "STALE_LINK_S", 1.0)
+
+    sim = DenonSim()
+    sim.power = True
+    server = await asyncio.start_server(sim.client, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    cfg = DeviceConfig(identifier="denon_stale", name="Denon Stale", address="127.0.0.1", port=port)
+    dev = DenonClientDevice(cfg, asyncio.get_event_loop())
+    try:
+        await dev.connect()
+        await _wait_for(lambda: dev.is_connected and dev.denon.power is True)
+        first = sim.connections
+
+        sim.silent = True
+        await _wait_for(lambda: sim.connections > first, timeout=8)
+        sim.silent = False
+        await _wait_for(lambda: dev.is_connected and dev.state is media_player.States.ON, timeout=8)
+    finally:
+        await dev.disconnect()
+        server.close()
+        await server.wait_closed()

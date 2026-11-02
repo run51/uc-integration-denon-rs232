@@ -43,6 +43,8 @@ from ucapi_framework import BaseConfigManager, BaseIntegrationDriver, Persistent
 _LOG = logging.getLogger(__name__)
 
 POLL_INTERVAL_S = 30.0
+# Link considered dead after this long without any line from the unit.
+STALE_LINK_S = 2 * POLL_INTERVAL_S + 15
 UPDATE_DEBOUNCE_S = 0.08
 
 
@@ -63,6 +65,9 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         self._client.add_listener(self._on_denon_event)
         self._update_handle: asyncio.TimerHandle | None = None
         self._refresh_task: asyncio.Task[None] | None = None
+        # The framework runs connect/disconnect as concurrent tasks (standby,
+        # integration restart): serialise them so a connect is never lost.
+        self._lifecycle_lock = asyncio.Lock()
 
     # ------------------------------------------------------------ identity
 
@@ -110,17 +115,34 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         return self._client
 
     async def maintain_connection(self) -> None:
-        """Block while the link is up; poll slowly as a safety net."""
+        """Block while the link is up; poll slowly as a safety net.
+
+        The unit always answers PW?, so a link that stays silent across several
+        polls is dead (half-open TCP after the Remote slept, bridge rebooted…):
+        drop it and let the framework reconnect.
+        """
         while self._client.is_connected:
             try:
                 await asyncio.wait_for(self._client.wait_closed(), timeout=POLL_INTERVAL_S)
                 break
             except asyncio.TimeoutError:
+                if self._client.seconds_since_rx > STALE_LINK_S:
+                    _LOG.warning(
+                        "[%s] No data for %.0f s, reconnecting",
+                        self.log_id,
+                        self._client.seconds_since_rx,
+                    )
+                    break
                 try:
                     await self._client.query_status()
                 except ConnectionError:
                     break
         raise ConnectionError("Serial bridge link lost")
+
+    async def connect(self) -> bool:
+        """Start the connection loop (serialised with disconnect)."""
+        async with self._lifecycle_lock:
+            return await super().connect()
 
     async def close_connection(self) -> None:
         """Close the TCP link."""
@@ -128,8 +150,9 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         await self._client.disconnect()
 
     async def disconnect(self) -> None:
-        """Disconnect and mark entities unavailable."""
-        await super().disconnect()
+        """Disconnect and mark entities unavailable (serialised with connect)."""
+        async with self._lifecycle_lock:
+            await super().disconnect()
         self.push_update()
 
     # ------------------------------------------------------------- events

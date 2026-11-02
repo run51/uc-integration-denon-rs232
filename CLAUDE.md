@@ -16,7 +16,7 @@ The goal is to remove both the ESP **and** the Home Assistant machine from the c
 
 ## Current state
 
-- Driver complete, 60 tests green, installed and working on the maintainer's Remote 3.
+- Driver complete, 62 tests green, installed and working on the maintainer's Remote 3.
 - Validated against `tests/denon_simulator.py` (fake Denon over TCP): connection, state
   queries, 30 s polling, reconnection.
 - **Validated on the real unit** (Nov. 2026, Dock 3, TCP 5000): power on/off, source,
@@ -117,6 +117,11 @@ Build: GitHub workflow `Build & Release` (tag `v*` or manual trigger with the ve
 number). A version can only be used once — increment for every build. Versions containing
 `test` are published as pre-releases. PyInstaller does not cross-compile: an ARM64 runner
 is required.
+
+The framework (`ucapi-framework`) runs `connect()` / `disconnect()` as concurrent tasks on
+Remote standby and integration restart: `DenonClientDevice` serialises them with a lock
+(otherwise a connect is lost and the driver stays UNAVAILABLE). Driver logs are not
+readable through the REST logs API (only `core` lines come back).
 
 Installing an update on the Remote = delete + reinstall: run the setup again, expose the
 entities, then **restart the Remote** (otherwise the selects lose their option list).
