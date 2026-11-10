@@ -11,7 +11,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "intg-denon"))
 
 from denon_control import DenonDevice, EventKind, decode_level, encode_level, parse_line  # noqa: E402
-from denon_control.const import VOLUME_ZERO_DB_CODE  # noqa: E402
+from denon_control.const import VOLUME_ZERO_DB_CODE, decoding_label  # noqa: E402
 
 
 # --- Master volume -----------------------------------------------------------
@@ -326,3 +326,70 @@ def test_dynamic_volume_level_enables_dynamic_volume_first() -> None:
 
     asyncio.run(run())
     assert sent == ["PSDYN VOL", "PSDYNSET DAY", "PSDYNSET NGT", "PSDYNSET ?"]
+
+
+# --- Decoding names (MS status) ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("status", "label"),
+    [
+        ("DOLBY HD", "Dolby TrueHD"),
+        ("DTS HD MSTR", "DTS-HD MA"),
+        ("DOLBY PL2 C", "Pro Logic II"),
+        ("DOLBY PL2X M", "Pro Logic IIx"),
+        ("MULTI CH IN 7.1", "PCM 7.1"),
+        ("DTS SURROUND", "DTS"),
+        ("DIRECT", "Direct"),
+        ("PURE DIRECT", "Pure Direct"),
+        ("DOLBY D+ +PL2X C", "Dolby Digital+ PLIIx"),
+        ("DOLBY HD+PL2X C", "Dolby TrueHD + PLIIx"),
+        ("DOLBY D+PL2Z H", "Dolby Digital + PLIIz"),
+        ("DTS+NEO:6", "DTS + Neo:6"),
+        ("M CH IN+DOLBY EX", "Multi-ch PCM + Dolby EX"),
+        ("PL2X C+THX", "PLIIx + THX"),
+        ("PL2 C DSX", "PLII + DSX"),
+        ("AUDYSSEY DSX", "Audyssey DSX"),
+        ("dolby  hd", "Dolby TrueHD"),
+        ("", ""),
+    ],
+)
+def test_decoding_label(status: str, label: str) -> None:
+    assert decoding_label(status) == label
+
+
+# Every MS status of the AVP-A1HD protocol (version 6.0.2, 3D upgrade).
+REPORTED_STATUSES = (
+    "STEREO", "DIRECT", "PURE DIRECT", "STANDARD", "DOLBY DIGITAL", "DTS SURROUND", "NEURAL",
+    "DOLBY H/P", "HOME THX CINEMA", "WIDE SCREEN", "7CH STEREO", "SUPER STADIUM", "ROCK ARENA",
+    "JAZZ CLUB", "CLASSIC CONCERT", "MONO MOVIE", "MATRIX", "VIDEO GAME", "MULTI CH IN",
+    "M CH IN+PL2X C", "M CH IN+PL2X M", "M CH IN+PL2Z H", "M CH IN+DOLBY EX", "MULTI CH IN 7.1",
+    "MULTI CH DIRECT", "M CH DRCT+PL2X C", "M CH DRCT+PL2X M", "M DIRECT 7.1", "MULTI CH PURE D",
+    "M CH PURE D+PL2X C", "M CH PURE D+PL2X M", "MULTI CH PURE D 7.1", "DOLBY PRO LOGIC",
+    "DOLBY PL2 C", "DOLBY PL2 M", "DOLBY PL2 G", "DOLBY PL2X C", "DOLBY PL2X M", "DOLBY PL2X G",
+    "DOLBY PL2Z H", "DOLBY D EX", "DOLBY D+PL2X C", "DOLBY D+PL2X M", "DOLBY D+PL2Z H",
+    "DOLBY D+NEO:X C", "DOLBY D+NEO:X M", "DOLBY D+NEO:X G", "DTS NEO:6 C", "DTS NEO:6 M",
+    "DTS NEO:X C", "DTS NEO:X M", "DTS NEO:X G", "DTS ES DSCRT6.1", "DTS ES MTRX6.1", "DTS+PL2X C",
+    "DTS+PL2X M", "DTS+PL2Z H", "DTS+NEO:6", "DTS96/24", "DTS96 ES MTRX", "PL2X C+THX", "PL2 C+THX",
+    "PL+THX", "PL2Z+THX", "NEO:6 C+THX", "THX CINEMA", "THX U2 CINEMA", "THX MUSIC MODE",
+    "THX GAMES MODE", "THX SURROUND EX", "ES DSCRT6.1+THX", "ES MTRX6.1+THX", "M CH 7.1+THX",
+    "M CH 5.1+THX", "5CH STEREO", "9CH STEREO", "MPEG2 AAC", "AAC+DOLBY EX", "AAC+PL2X C",
+    "AAC+PL2X M", "AAC+PL2Z H", "AAC+NEO:X C", "AAC+NEO:X M", "AAC+NEO:X G", "DSD DIRECT",
+    "DSD PURE DIRECT", "DSD MULTI DRCT", "DSD MULTI PURE", "DOLBY D+", "DOLBY D+ +EX",
+    "DOLBY D+ +PL2X C", "DOLBY D+ +PL2X M", "DOLBY D+ +PL2Z H", "DOLBY D+ +NEO:X C",
+    "DOLBY D+ +NEO:X M", "DOLBY D+ +NEO:X G", "DOLBY HD", "DOLBY HD+EX", "DOLBY HD+PL2X C",
+    "DOLBY HD+PL2X M", "DOLBY HD+PL2Z H", "DOLBY HD+NEO:X C", "DOLBY HD+NEO:X M",
+    "DOLBY HD+NEO:X G", "DTS HD", "DTS HD MSTR", "DTS HD+NEO:6", "DTS HD+PL2X C", "DTS HD+PL2X M",
+    "DTS HD+PL2Z H", "DTS HD+NEO:X C", "DTS HD+NEO:X M", "DTS HD+NEO:X G", "DTS EXPRESS",
+    "DTS ES 8CH DSCRT", "AUDYSSEY DSX", "PL DSX", "PL2 C DSX", "PL2 M DSX", "PL2 G DSX",
+    "PL2X C DSX", "PL2X M DSX", "PL2X G DSX",
+)
+
+
+def test_every_reported_status_has_a_short_name() -> None:
+    """Fits a Remote sensor tile (two lines of a 36 px font), never the raw upper-case code."""
+    for status in REPORTED_STATUSES:
+        label = decoding_label(status)
+        assert label, status
+        assert len(label) <= 23, (status, label)
+        assert label != status, (status, label)

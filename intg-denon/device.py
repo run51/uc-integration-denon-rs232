@@ -36,6 +36,7 @@ from denon_control.const import (
     ROOM_EQ_MODES,
     SOURCES,
     SURROUND_MODES,
+    decoding_label,
 )
 from ucapi import media_player, select, sensor, switch
 from ucapi_framework import BaseConfigManager, BaseIntegrationDriver, PersistentConnectionDevice
@@ -329,9 +330,7 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         if st.source is not None:
             attrs[media_player.Attributes.SOURCE] = SOURCES.get(st.source, st.source)
         if st.surround is not None:
-            attrs[media_player.Attributes.SOUND_MODE] = SURROUND_MODES.get(
-                st.surround, st.surround.title()
-            )
+            attrs[media_player.Attributes.SOUND_MODE] = decoding_label(st.surround)
         attrs.update(self._media_info_attributes())
         return attrs
 
@@ -359,7 +358,7 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
 
         line2 = []
         if st.surround:
-            line2.append(SURROUND_MODES.get(st.surround, st.surround.title()))
+            line2.append(decoding_label(st.surround))
         room_eq = (st.parameters.get("ROOM EQ") or "").upper()
         if room_eq == "OFF":
             line2.append("EQ Off")  # a bare "Off" is meaningless on the widget
@@ -398,6 +397,16 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
                 return zone.source if zone else None
         return None
 
+    @staticmethod
+    def _select_option_label(cfg: SelectConfig, code: str | None) -> str:
+        """Current option of a select. The unit reports decodings that cannot be set
+        ("DOLBY HD", "DOLBY PL2 C"): the surround mode select shows their short name."""
+        if not code:
+            return ""
+        if code not in cfg.options and cfg.kind == "surround":
+            return decoding_label(code)
+        return cfg.options.get(code, code)
+
     def get_select_attributes(self, select_id: str) -> dict[select.Attributes, Any]:
         """Attributes for a select entity."""
         cfg = SELECT_BY_ID[select_id]
@@ -405,7 +414,7 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         available = self.is_connected and self.denon.power is not None
         return {
             select.Attributes.STATE: select.States.ON if available else select.States.UNAVAILABLE,
-            select.Attributes.CURRENT_OPTION: cfg.options.get(code, code or "") if code else "",
+            select.Attributes.CURRENT_OPTION: self._select_option_label(cfg, code),
             select.Attributes.OPTIONS: list(cfg.options.values()),
         }
 
@@ -453,7 +462,7 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
             case "source":
                 return label(st.source)
             case "surround_mode":
-                return cfg.default if st.surround is None else st.surround
+                return cfg.default if st.surround is None else decoding_label(st.surround)
             case "input_mode":
                 return label(st.input_mode)
             case "digital_mode":

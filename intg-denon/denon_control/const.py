@@ -113,6 +113,127 @@ SURROUND_MODES: dict[str, str] = {
 # Response values starting with these prefixes under "MS" are NOT surround modes.
 MS_NON_MODE_PREFIXES = ("QUICK",)
 
+# --- Decoding reported by the unit (MS status) -------------------------------
+# Display names of what the unit reports it decodes ("DOLBY HD", "DTS HD MSTR",
+# "DOLBY PL2 C"...). They must stay short: a Remote sensor tile draws its value in
+# a 36 px font on two lines at most. The cinema / music / game / height variants
+# (trailing C, M, G, H) are not shown.
+DECODING_LABELS: dict[str, str] = {
+    "DOLBY DIGITAL": "Dolby Digital",
+    "DOLBY D EX": "Dolby Digital EX",
+    "DOLBY D+": "Dolby Digital+",
+    "DOLBY HD": "Dolby TrueHD",
+    "DTS SURROUND": "DTS",
+    "DTS ES DSCRT6.1": "DTS-ES Discrete",
+    "DTS ES MTRX6.1": "DTS-ES Matrix",
+    "DTS ES 8CH DSCRT": "DTS-ES 8ch",
+    "DTS96/24": "DTS 96/24",
+    "DTS96 ES MTRX": "DTS 96/24 ES",
+    "DTS HD": "DTS-HD",
+    "DTS HD MSTR": "DTS-HD MA",
+    "DTS EXPRESS": "DTS Express",
+    "MPEG2 AAC": "AAC",
+    "MULTI CH IN": "Multi-ch PCM",
+    "MULTI CH IN 7.1": "PCM 7.1",
+    "MULTI CH DIRECT": "Multi-ch Direct",
+    "M DIRECT 7.1": "PCM 7.1 Direct",
+    "MULTI CH PURE D": "Multi-ch Pure Direct",
+    "MULTI CH PURE D 7.1": "PCM 7.1 Pure Direct",
+    "DSD DIRECT": "DSD Direct",
+    "DSD PURE DIRECT": "DSD Pure Direct",
+    "DSD MULTI DRCT": "DSD Multi Direct",
+    "DSD MULTI PURE": "DSD Multi Pure",
+    "DOLBY PRO LOGIC": "Pro Logic",
+    "DOLBY PL2": "Pro Logic II",
+    "DOLBY PL2X": "Pro Logic IIx",
+    "DOLBY PL2Z": "Pro Logic IIz",
+    "DTS NEO:6": "DTS Neo:6",
+    "DTS NEO:X": "DTS Neo:X",
+    "NEURAL": "Neural",
+    "DOLBY H/P": "Dolby Headphone",
+    "HOME THX CINEMA": "THX Cinema",
+    "THX CINEMA": "THX Cinema",
+    "THX U2 CINEMA": "THX Ultra2",
+    "THX MUSIC MODE": "THX Music",
+    "THX GAMES MODE": "THX Games",
+    "THX SURROUND EX": "THX Surround EX",
+    "5CH STEREO": "5ch Stereo",
+    "7CH STEREO": "7ch Stereo",
+    "9CH STEREO": "9ch Stereo",
+    "AUDYSSEY DSX": "Audyssey DSX",
+}
+
+# "<decoder>+<processing>" statuses ("DOLBY HD+PL2X C", "PL2X C+THX", "PL2 C DSX"):
+# names of each part.
+DECODING_PARTS: dict[str, str] = {
+    "DOLBY D": "Dolby Digital",
+    "DOLBY D+": "Dolby Digital+",
+    "DOLBY HD": "Dolby TrueHD",
+    "DTS": "DTS",
+    "DTS HD": "DTS-HD",
+    "AAC": "AAC",
+    "M CH IN": "Multi-ch PCM",
+    "M CH DRCT": "Multi-ch Direct",
+    "M CH PURE D": "Multi-ch Pure",
+    "M CH 7.1": "PCM 7.1",
+    "M CH 5.1": "PCM 5.1",
+    "PL": "Pro Logic",
+    "PL2": "PLII",
+    "PL2X": "PLIIx",
+    "PL2Z": "PLIIz",
+    "NEO:6": "Neo:6",
+    "ES DSCRT6.1": "DTS-ES Discrete",
+    "ES MTRX6.1": "DTS-ES Matrix",
+}
+PROCESSING_PARTS: dict[str, str] = {
+    "PL2X": "PLIIx",
+    "PL2Z": "PLIIz",
+    "NEO:X": "Neo:X",
+    "NEO:6": "Neo:6",
+    "EX": "EX",
+    "DOLBY EX": "Dolby EX",
+    "THX": "THX",
+    "DSX": "DSX",
+}
+
+
+def _without_variant(code: str) -> str:
+    """Drop a trailing cinema / music / game / height variant: "DOLBY PL2 C" -> "DOLBY PL2"."""
+    if len(code) > 2 and code[-2] == " " and code[-1] in "CMGH":
+        return code[:-2]
+    return code
+
+
+def _part_label(part: str, table: dict[str, str]) -> str | None:
+    return table.get(part) or table.get(_without_variant(part))
+
+
+def decoding_label(status: str) -> str:
+    """Short display name of the decoding the unit reports (MS status).
+
+    Settable modes keep their usual name ("Direct", "Stereo"); unknown statuses
+    fall back to title case.
+    """
+    code = " ".join(status.upper().split())
+    if not code:
+        return ""
+    label = (
+        _part_label(code, DECODING_LABELS)
+        or SURROUND_MODES.get(code)
+    )
+    if label:
+        return label
+    head, plus, tail = code.rpartition("+")
+    if not plus and code.endswith(" DSX"):
+        head, tail = code[:-4], "DSX"
+    head, tail = head.strip(), tail.strip()
+    if head and tail:
+        decoder = _part_label(head, DECODING_PARTS) or decoding_label(head)
+        processing = _part_label(tail, PROCESSING_PARTS) or tail.title()
+        # "Dolby Digital+ PLIIx" rather than "Dolby Digital+ + PLIIx"
+        return f"{decoder} {processing}" if decoder.endswith("+") else f"{decoder} + {processing}"
+    return code.title()
+
 QUICK_SELECTS: dict[str, str] = {
     "QUICK1": "Quick 1",
     "QUICK2": "Quick 2",

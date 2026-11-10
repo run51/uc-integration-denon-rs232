@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.11
+
+- Short names for what the unit reports it decodes: "Dolby TrueHD" instead of "DOLBY HD",
+  "DTS-HD MA" instead of "DTS HD MSTR", "Pro Logic II" instead of "DOLBY PL2 C", "PCM 7.1"
+  instead of "MULTI CH IN 7.1"... They are used by the surround mode sensor, the media widget,
+  the sound mode and the surround mode select, and fit a Remote sensor tile (36 px font, two
+  lines at most).
+
 ## v0.1.10
 
 - Fixed: the driver could stay disconnected after the Remote woke up from standby (or after
