@@ -10,6 +10,10 @@
   is now detected and rebuilt: the unit always answers the 30 s `PW?` poll.
 - Writes to the bridge time out after 5 s instead of waiting forever.
 - Channel levels are queried at startup (`CV?`); SW3 added to the channel list.
+- Fixed: after the Remote woke up, the entities stayed unavailable until the unit reported
+  a change (a volume step, for example). The framework marks the device connected only
+  after the startup queries, so the state pushed while the unit answered them was still
+  "unavailable". The state is now pushed again once the connection is established.
 
 ## v0.1.9
 

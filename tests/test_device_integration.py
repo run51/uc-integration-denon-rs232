@@ -225,3 +225,32 @@ async def test_reconnects_when_link_goes_silent(monkeypatch) -> None:
         await dev.disconnect()
         server.close()
         await server.wait_closed()
+
+
+@pytest.mark.asyncio
+async def test_pushes_real_state_once_connected() -> None:
+    """Remote wake-up: the entities must leave UNAVAILABLE without waiting for an event.
+
+    The framework marks the device connected only once establish_connection() has
+    returned, so the updates pushed while the unit answers the startup queries are
+    computed as UNAVAILABLE. In standby the unit answers PW? and nothing else: unless
+    the real state is pushed once connected, the Remote shows the entities as
+    unavailable until the unit reports a change (seen live after a Remote wake-up).
+    """
+    sim = DenonSim()  # standby: only PW? is answered, like the real unit
+    server = await asyncio.start_server(sim.client, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    cfg = DeviceConfig(identifier="denon_wake", name="Denon Wake", address="127.0.0.1", port=port)
+    dev = DenonClientDevice(cfg, asyncio.get_event_loop())
+
+    pushed: list[media_player.States] = []
+    dev.events.on(DeviceEvents.UPDATE, lambda *_a, **_k: pushed.append(dev.state))
+    try:
+        await dev.connect()
+        await _wait_for(lambda: dev.is_connected and dev.denon.power is False)
+        standby = media_player.States.STANDBY
+        await _wait_for(lambda: bool(pushed) and pushed[-1] is standby, timeout=3)
+    finally:
+        await dev.disconnect()
+        server.close()
+        await server.wait_closed()

@@ -121,6 +121,12 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         polls is dead (half-open TCP after the Remote slept, bridge rebooted…):
         drop it and let the framework reconnect.
         """
+        # The framework marks the device connected only once establish_connection()
+        # has returned: every update pushed while the unit was answering the startup
+        # queries still reported UNAVAILABLE. In standby the unit answers nothing but
+        # PW?, so without this push the Remote would keep the entities unavailable
+        # until the unit reports a change.
+        self.push_update()
         while self._client.is_connected:
             try:
                 await asyncio.wait_for(self._client.wait_closed(), timeout=POLL_INTERVAL_S)
