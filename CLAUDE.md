@@ -16,7 +16,9 @@ The goal is to remove both the ESP **and** the Home Assistant machine from the c
 
 ## Current state
 
-- Driver complete, 62 tests green, installed and working on the maintainer's Remote 3.
+- Driver complete, 63 tests green, installed and working on the maintainer's Remote 3
+  (0.1.10-test2 from branch `reconnexion`; the 0.1.10 release waits for the maintainer's
+  validation).
 - Validated against `tests/denon_simulator.py` (fake Denon over TCP): connection, state
   queries, 30 s polling, reconnection.
 - **Validated on the real unit** (Nov. 2026, Dock 3, TCP 5000): power on/off, source,
@@ -120,11 +122,19 @@ is required.
 
 The framework (`ucapi-framework`) runs `connect()` / `disconnect()` as concurrent tasks on
 Remote standby and integration restart: `DenonClientDevice` serialises them with a lock
-(otherwise a connect is lost and the driver stays UNAVAILABLE). Driver logs are not
-readable through the REST logs API (only `core` lines come back).
+(otherwise a connect is lost and the driver stays UNAVAILABLE). The framework also marks
+the device connected only once `establish_connection()` has returned, so every update
+pushed while the unit answers the startup queries reports UNAVAILABLE:
+`maintain_connection()` pushes the state first, otherwise the entities stay unavailable
+after a Remote wake-up until the unit reports a change
+(`test_pushes_real_state_once_connected`). Driver logs are readable through the REST logs
+API: `GET /api/system/logs?s=custom-intg-denon_rs232&p=7`.
 
 Installing an update on the Remote = delete + reinstall: run the setup again, expose the
-entities, then **restart the Remote** (otherwise the selects lose their option list).
+entities, then **restart the integration** (disable / enable): until then the selects have
+no option list. A Remote restart is not needed. Entity ids regenerate identically
+(identifier `denon`), so activity references survive; entity renames made by the user do
+not and must be applied again.
 
 ## Maintainer environment
 
