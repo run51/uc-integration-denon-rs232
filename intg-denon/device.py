@@ -23,12 +23,14 @@ from typing import Any
 from const import (
     INDICATOR_OFF_COLOR,
     INDICATOR_ON_COLOR,
+    NUMBER_BY_ID,
     RAW_COMMAND_RE,
     SELECT_BY_ID,
     SENSOR_BY_ID,
     SIMPLE_COMMANDS,
     SWITCH_BY_ID,
     DeviceConfig,
+    NumberConfig,
     SelectConfig,
     SensorConfig,
     SwitchConfig,
@@ -411,6 +413,40 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
             return decoding_label(code)
         return cfg.options.get(code, code)
 
+    def number_value(self, cfg: NumberConfig) -> float | None:
+        """Current value of a number entity in dB, None while unknown."""
+        st = self.denon
+        match cfg.kind:
+            case "volume":
+                return st.volume_db
+            case "channel":
+                return st.channel_levels.get(cfg.key or "")
+            case "tone":
+                return _tone_db(st.parameters.get(cfg.key or ""))
+            case "lfe":
+                return _lfe_db(st.parameters.get(cfg.key or ""))
+        return None
+
+    def get_number_attributes(self, number_id: str) -> dict[str, Any]:
+        """Attributes for a number entity."""
+        cfg = NUMBER_BY_ID[number_id]
+        available = self.is_connected and self.denon.power is not None
+        return {"state": "ON" if available else "UNAVAILABLE", "value": self.number_value(cfg)}
+
+    async def set_number(self, number_id: str, value: float) -> None:
+        """Send a new value for a number entity, clamped to its range and step."""
+        cfg = NUMBER_BY_ID[number_id]
+        value = cfg.clamp(value)
+        match cfg.kind:
+            case "volume":
+                await self._client.set_volume_db(value)
+            case "channel":
+                await self._client.set_channel_level_db(cfg.key or "", value)
+            case "tone":
+                await self._client.set_parameter(cfg.key or "", f"{50 + int(round(value)):02d}")
+            case "lfe":
+                await self._client.set_parameter(cfg.key or "", f"{-int(round(value)):02d}")
+
     def get_select_attributes(self, select_id: str) -> dict[select.Attributes, Any]:
         """Attributes for a select entity."""
         cfg = SELECT_BY_ID[select_id]
@@ -531,6 +567,22 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         if cfg.unit:
             attrs[sensor.Attributes.UNIT] = unit
         return attrs
+
+
+def _tone_db(code: str | None) -> float | None:
+    """PSBAS / PSTRE: 44..56, 50 = 0 dB."""
+    try:
+        return float(int(str(code).strip()) - 50)
+    except (TypeError, ValueError):
+        return None
+
+
+def _lfe_db(code: str | None) -> float | None:
+    """PSLFE: 00..10 = 0 .. -10 dB."""
+    try:
+        return float(-int(str(code).strip()))
+    except (TypeError, ValueError):
+        return None
 
 
 _COLOR_RE = re.compile(r"^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,30})$")

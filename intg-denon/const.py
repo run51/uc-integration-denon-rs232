@@ -53,6 +53,9 @@ class DeviceConfig:
     # scale (1 = 70 %, 2 = 80 %, 3 = 100 %...); colour "#rrggbb" or a name, "" = default.
     sensor_font_size: int = 0
     sensor_color: str = ""
+    # Number entities (volume in dB, channel levels, tone): only for Remote firmware that knows the
+    # number entity type (core 0.85+); older firmware does not, so they are off by default.
+    number_entities: bool = False
 
 
 # --------------------------------------------------------------------------- #
@@ -339,3 +342,33 @@ INDICATOR_OFF_COLOR = "#5a5a5a"
 
 SENSOR_IDS = tuple(s.identifier for s in SENSORS)
 SENSOR_BY_ID = {s.identifier: s for s in SENSORS}
+
+NumberKind = Literal["volume", "channel", "tone", "lfe"]
+
+
+@dataclass(frozen=True, slots=True)
+class NumberConfig:
+    """One number entity: a value in dB read from and written to the unit."""
+
+    identifier: str
+    name: str
+    kind: NumberKind
+    minimum: float
+    maximum: float
+    step: float
+    key: str | None = None  # channel (CV) or PS parameter key
+
+    def clamp(self, value: float) -> float:
+        """The value rounded to the step and kept within the range."""
+        return max(self.minimum, min(self.maximum, round(value / self.step) * self.step))
+
+
+NUMBERS: tuple[NumberConfig, ...] = (
+    NumberConfig("volume", "Master Volume", "volume", -80.0, 18.0, 0.5),
+    NumberConfig("subwoofer_level", "Subwoofer Level", "channel", -12.0, 12.0, 0.5, "SW1"),
+    NumberConfig("center_level", "Center Level", "channel", -12.0, 12.0, 0.5, "C"),
+    NumberConfig("bass", "Bass", "tone", -6.0, 6.0, 1.0, "BAS"),
+    NumberConfig("treble", "Treble", "tone", -6.0, 6.0, 1.0, "TRE"),
+    NumberConfig("lfe", "LFE Level", "lfe", -10.0, 0.0, 1.0, "LFE"),
+)
+NUMBER_BY_ID = {n.identifier: n for n in NUMBERS}

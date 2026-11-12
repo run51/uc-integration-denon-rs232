@@ -93,6 +93,14 @@ class SetupFlow(BaseSetupFlow[DeviceConfig]):
                     },
                 },
                 {
+                    "field": {"checkbox": {"value": False}},
+                    "id": "number_entities",
+                    "label": {
+                        "en": "Number entities: volume in dB, levels (needs Remote firmware 2.13+)",
+                        "fr": "Réglages nombre : volume en dB, niveaux (firmware remote 2.13+)",
+                    },
+                },
+                {
                     "field": {"checkbox": {"value": True}},
                     "id": "validate",
                     "label": {
@@ -138,6 +146,7 @@ class SetupFlow(BaseSetupFlow[DeviceConfig]):
             port=port,
             sensor_font_size=sensor_font_size,
             sensor_color=sensor_color,
+            number_entities=_as_bool(input_values.get("number_entities", False)),
         )
 
 

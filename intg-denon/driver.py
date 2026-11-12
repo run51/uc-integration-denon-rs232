@@ -6,9 +6,10 @@ import asyncio
 import logging
 import os
 
-from const import SELECTS, SENSORS, SWITCHES, DeviceConfig
+from const import NUMBERS, SELECTS, SENSORS, SWITCHES, DeviceConfig
 from device import DenonClientDevice
 from media_player import DenonMediaPlayer
+from number_entity import DenonNumber
 from remote import DenonRemote
 from select_entity import DenonSelect
 from sensor import DenonSensor
@@ -50,6 +51,9 @@ async def main() -> None:
             lambda cfg, dev: [DenonSelect(cfg, dev, s) for s in SELECTS],
             lambda cfg, dev: [DenonSwitch(cfg, dev, s) for s in SWITCHES],
             lambda cfg, dev: [DenonSensor(cfg, dev, s) for s in SENSORS],
+            lambda cfg, dev: (
+                [DenonNumber(cfg, dev, n) for n in NUMBERS] if cfg.number_entities else []
+            ),
         ],
         require_connection_before_registry=False,
     )

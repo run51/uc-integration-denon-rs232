@@ -42,6 +42,9 @@ class DenonSim:  # pylint: disable=too-many-instance-attributes
             "REFLEV ": "0",
             "RSTR ": "OFF",
             "CINEMA EQ.": "OFF",
+            "BAS ": "50",
+            "TRE ": "50",
+            "LFE ": "00",
         }
         self.channels = {
             "FL": "405", "FR": "41", "C": "38", "SW1": "38", "SW2": "50", "SW3": "50",
