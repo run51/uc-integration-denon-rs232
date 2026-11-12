@@ -14,7 +14,9 @@ connection loop with exponential backoff.  On top of that:
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
+import re
 from asyncio import AbstractEventLoop
 from typing import Any
 
@@ -489,13 +491,43 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
     def get_sensor_attributes(self, sensor_id: str) -> dict[sensor.Attributes, Any]:
         """Attributes for a sensor entity."""
         cfg = SENSOR_BY_ID[sensor_id]
+        value = self._sensor_value(cfg)
+        unit = cfg.unit
+        styled = style_sensor_value(
+            f"{value} {unit}" if unit and value != cfg.default else value,
+            getattr(self._device_config, "sensor_font_size", 0),
+            getattr(self._device_config, "sensor_color", ""),
+        )
+        if styled is not None:
+            # The unit goes inside the styled text: the remote would append it in its large font.
+            value, unit = styled, ""
         attrs: dict[sensor.Attributes, Any] = {
             sensor.Attributes.STATE: sensor.States.ON if self.is_connected else sensor.States.UNAVAILABLE,
-            sensor.Attributes.VALUE: self._sensor_value(cfg),
+            sensor.Attributes.VALUE: value,
         }
         if cfg.unit:
-            attrs[sensor.Attributes.UNIT] = cfg.unit
+            attrs[sensor.Attributes.UNIT] = unit
         return attrs
+
+
+_COLOR_RE = re.compile(r"^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,30})$")
+
+
+def style_sensor_value(value: str, font_size: int, color: str) -> str | None:
+    """Wrap a sensor value in the HTML the remote's text widget renders, or None if no style is set.
+
+    The remote shows sensor values in a large font (36 px). Its Qt text widget renders simple
+    HTML: <font size='N'> scales the text (1 = 70 %, 2 = 80 %, 3 = 100 %...) and color='...'
+    sets its colour.
+    """
+    attrs = []
+    if 1 <= (font_size or 0) <= 7:
+        attrs.append(f"size='{font_size}'")
+    if color and _COLOR_RE.match(color):
+        attrs.append(f"color='{color}'")
+    if not attrs or not value:
+        return None
+    return f"<font {' '.join(attrs)}>{html.escape(value, quote=False)}</font>"
 
 
 def _code_for(option: str | None, table: dict[str, str]) -> str | None:

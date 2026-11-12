@@ -26,3 +26,15 @@ def test_update_keeps_identifier() -> None:
 def test_second_device_gets_suffix() -> None:
     assert make_identifier({"denon"}.__contains__) == "denon_2"
     assert make_identifier({"denon", "denon_2"}.__contains__) == "denon_3"
+
+
+def test_sensor_value_style() -> None:
+    from device import style_sensor_value  # noqa: E402
+
+    assert style_sensor_value("Dolby TrueHD", 0, "") is None
+    styled = style_sensor_value("Dolby TrueHD", 2, "#4da6ff")
+    assert styled == "<font size='2' color='#4da6ff'>Dolby TrueHD</font>"
+    assert style_sensor_value("-35.0 dB", 1, "") == "<font size='1'>-35.0 dB</font>"
+    # Unknown colour syntax is ignored, text is escaped.
+    assert style_sensor_value("A<B", 0, "x' onload='") is None
+    assert style_sensor_value("A<B", 2, "x' onload='") == "<font size='2'>A&lt;B</font>"

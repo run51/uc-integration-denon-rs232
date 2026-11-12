@@ -77,6 +77,22 @@ class SetupFlow(BaseSetupFlow[DeviceConfig]):
                     "label": {"en": "TCP port", "fr": "Port TCP"},
                 },
                 {
+                    "field": {"number": {"value": 0, "min": 0, "max": 7}},
+                    "id": "sensor_font_size",
+                    "label": {
+                        "en": "Sensor values text size: 0 = normal, 1 = 70 %, 2 = 80 %",
+                        "fr": "Taille du texte des capteurs : 0 = normale, 1 = 70 %, 2 = 80 %",
+                    },
+                },
+                {
+                    "field": {"text": {"value": ""}},
+                    "id": "sensor_color",
+                    "label": {
+                        "en": "Sensor values colour (#4da6ff, lightblue..., empty = normal)",
+                        "fr": "Couleur des capteurs (#4da6ff, lightblue…, vide = normale)",
+                    },
+                },
+                {
                     "field": {"checkbox": {"value": True}},
                     "id": "validate",
                     "label": {
@@ -108,8 +124,21 @@ class SetupFlow(BaseSetupFlow[DeviceConfig]):
             if error is not None:
                 return error
 
+        try:
+            sensor_font_size = int(float(input_values.get("sensor_font_size", 0) or 0))
+        except (TypeError, ValueError):
+            sensor_font_size = 0
+        sensor_color = str(input_values.get("sensor_color", "") or "").strip()
+
         identifier = make_identifier(self.config.contains)
-        return DeviceConfig(identifier=identifier, name=name, address=address, port=port)
+        return DeviceConfig(
+            identifier=identifier,
+            name=name,
+            address=address,
+            port=port,
+            sensor_font_size=sensor_font_size,
+            sensor_color=sensor_color,
+        )
 
 
 async def _probe(address: str, port: int) -> SetupError | None:

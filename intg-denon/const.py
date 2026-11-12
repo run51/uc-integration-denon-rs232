@@ -49,6 +49,10 @@ class DeviceConfig:
     name: str
     address: str
     port: int = DEFAULT_PORT
+    # Sensor values on the remote: 0 = remote default font (36 px), 1..7 = Qt <font size>
+    # scale (1 = 70 %, 2 = 80 %, 3 = 100 %...); colour "#rrggbb" or a name, "" = default.
+    sensor_font_size: int = 0
+    sensor_color: str = ""
 
 
 # --------------------------------------------------------------------------- #
