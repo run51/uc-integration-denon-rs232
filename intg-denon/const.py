@@ -315,6 +315,8 @@ class SensorConfig:
     labels: dict[str, str] = field(default_factory=dict)  # code -> label, optional
     # Indicator sensors: "direct" / "pure_direct" light up while the unit decodes in that mode
     indicator: str = ""
+    # Level sensors: the value is a picture of this number entity's level (see level_images)
+    level: str = ""
 
 
 SENSORS: tuple[SensorConfig, ...] = (
@@ -340,8 +342,19 @@ SENSORS: tuple[SensorConfig, ...] = (
 INDICATOR_ON_COLOR = "#4da6ff"
 INDICATOR_OFF_COLOR = "#5a5a5a"
 
+# Level pictures (only with the number entities, whose levels they draw): a blue bar for each level,
+# shown in a sensor widget without rewriting the page.
+LEVEL_SENSORS: tuple[SensorConfig, ...] = (
+    SensorConfig("volume_level", "Master Volume Level", level="volume"),
+    SensorConfig("subwoofer_level_bar", "Subwoofer Level Bar", level="subwoofer_level"),
+    SensorConfig("center_level_bar", "Center Level Bar", level="center_level"),
+    SensorConfig("bass_bar", "Bass Bar", level="bass"),
+    SensorConfig("treble_bar", "Treble Bar", level="treble"),
+    SensorConfig("lfe_bar", "LFE Level Bar", level="lfe"),
+)
+
 SENSOR_IDS = tuple(s.identifier for s in SENSORS)
-SENSOR_BY_ID = {s.identifier: s for s in SENSORS}
+SENSOR_BY_ID = {s.identifier: s for s in SENSORS + LEVEL_SENSORS}
 
 NumberKind = Literal["volume", "channel", "tone", "lfe"]
 

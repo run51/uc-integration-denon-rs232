@@ -6,7 +6,8 @@ import asyncio
 import logging
 import os
 
-from const import NUMBERS, SELECTS, SENSORS, SWITCHES, DeviceConfig
+import level_images
+from const import LEVEL_SENSORS, NUMBERS, SELECTS, SENSORS, SWITCHES, DeviceConfig
 from device import DenonClientDevice
 from media_player import DenonMediaPlayer
 from number_entity import DenonNumber
@@ -37,6 +38,7 @@ async def main() -> None:
         "switch_entity",
         "sensor",
         "setup",
+        "level_images",
         "denon_control",
         "denon_control.transport",
         "denon_control.device",
@@ -54,6 +56,9 @@ async def main() -> None:
             lambda cfg, dev: (
                 [DenonNumber(cfg, dev, n) for n in NUMBERS] if cfg.number_entities else []
             ),
+            lambda cfg, dev: (
+                [DenonSensor(cfg, dev, s) for s in LEVEL_SENSORS] if cfg.number_entities else []
+            ),
         ],
         require_connection_before_registry=False,
     )
@@ -64,6 +69,9 @@ async def main() -> None:
         driver.on_device_removed,
         config_class=DeviceConfig,
     )
+
+    # Level pictures shown by the level sensors (number entities)
+    await level_images.SERVER.start()
 
     await driver.register_all_configured_devices()
 

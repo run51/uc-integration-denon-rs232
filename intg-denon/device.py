@@ -20,6 +20,7 @@ import re
 from asyncio import AbstractEventLoop
 from typing import Any
 
+import level_images
 from const import (
     INDICATOR_OFF_COLOR,
     INDICATOR_ON_COLOR,
@@ -542,6 +543,13 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
     def get_sensor_attributes(self, sensor_id: str) -> dict[sensor.Attributes, Any]:
         """Attributes for a sensor entity."""
         cfg = SENSOR_BY_ID[sensor_id]
+        if cfg.level:
+            level = self.number_value(NUMBER_BY_ID[cfg.level]) if self.is_connected else None
+            picture = ""  # while unknown: the Remote shows "—"
+            if level is not None and level_images.SERVER.running:
+                picture = level_images.SERVER.img(cfg.level, level)
+            available = sensor.States.ON if self.is_connected else sensor.States.UNAVAILABLE
+            return {sensor.Attributes.STATE: available, sensor.Attributes.VALUE: picture}
         if cfg.indicator:
             lit = self.is_connected and self.indicator_on(cfg.indicator)
             color = INDICATOR_ON_COLOR if lit else INDICATOR_OFF_COLOR
