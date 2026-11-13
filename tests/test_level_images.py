@@ -49,6 +49,21 @@ def test_requests() -> None:
     assert LevelImageServer.respond("POST /level/volume.svg?v=1 HTTP/1.1")[0].startswith("405")
 
 
+def test_taken_port_is_skipped() -> None:
+    async def run() -> tuple[int, bool]:
+        blocker = await asyncio.start_server(lambda r, w: None, "0.0.0.0", 0)
+        taken = blocker.sockets[0].getsockname()[1]
+        server = LevelImageServer(port=taken)
+        await server.start()
+        result = (server.port, server.running)
+        server._server.close()  # type: ignore[union-attr]  # noqa: SLF001
+        blocker.close()
+        return result, taken
+
+    (port, running), taken = asyncio.run(run())
+    assert running and port != taken
+
+
 def test_sensor_value_is_an_image_tag() -> None:
     server = LevelImageServer(host="192.168.1.2", port=9999)
     assert server.img("center_level", -5) == (
@@ -91,7 +106,7 @@ def test_level_sensor_attributes() -> None:
     level_images.SERVER._server = object()  # type: ignore[assignment]  # noqa: SLF001 - "running"
     try:
         attrs = Fake().get_sensor_attributes("center_level_bar")  # type: ignore[arg-type]
-        assert attrs["value"].startswith("<img src='http://127.0.0.1:9320/level/center_level.svg?v=-5.0'")
+        assert attrs["value"].startswith("<img src='http://127.0.0.1:9330/level/center_level.svg?v=-5.0'")
         Fake.is_connected = False
         attrs = Fake().get_sensor_attributes("volume_level")  # type: ignore[arg-type]
         assert attrs["value"] == "" and attrs["state"] == "UNAVAILABLE"

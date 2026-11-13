@@ -21,7 +21,10 @@ from const import NUMBER_BY_ID, NumberConfig
 
 _LOG = logging.getLogger(__name__)
 
-DEFAULT_PORT = 9320  # free on the Remote: 8000-9200 are reserved, the other integrations use 93x0
+# 8000-9200 are reserved on the Remote; other custom integrations use 9300-9320
+# (IPTV, OPPO Music, Emby)
+DEFAULT_PORT = 9330
+PORT_TRIES = 10  # the next ports are tried when one is taken
 BLUE = "#4da6ff"
 TRACK = "#2b2b2b"
 GREY = "#8a8a8a"
@@ -123,13 +126,19 @@ class LevelImageServer:
         return f"<img src='{self.url(number_id, value)}' width='{w}' height='{h}'>"
 
     async def start(self) -> None:
-        try:
-            self._server = await asyncio.start_server(self._handle, "0.0.0.0", self.port)
-        except OSError as ex:
-            _LOG.warning("Level pictures not served: port %s unavailable (%s)", self.port, ex)
-            self._server = None
+        first = self.port
+        for port in range(first, first + PORT_TRIES):
+            try:
+                self._server = await asyncio.start_server(self._handle, "0.0.0.0", port)
+            except OSError as ex:
+                _LOG.info("Level pictures: port %s unavailable (%s)", port, ex)
+                continue
+            self.port = port
+            _LOG.info("Level pictures served on port %s (announced as %s)", port, self.host)
             return
-        _LOG.info("Level pictures served on port %s (announced as %s)", self.port, self.host)
+        self._server = None
+        last = first + PORT_TRIES - 1
+        _LOG.warning("Level pictures not served: ports %s-%s unavailable", first, last)
 
     async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
