@@ -1,6 +1,6 @@
 {
   "driver_id": "denon_rs232",
-  "version": "0.1.12-test1",
+  "version": "0.1.12",
   "min_core_api": "0.20.0",
   "name": {
     "en": "Denon AV receivers & processors (RS-232)",

@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.12
+
+- Optional style for sensor values. The Remote shows sensor values in a 36 px font, larger than
+  the rest of an activity page; its text widget renders simple HTML, so two new setup settings
+  wrap the value, unit included, in `<font size='N' color='...'>`:
+  - font size: 1 = 70 %, 2 = 80 %...;
+  - colour: `#rrggbb` or a colour name.
+  Both are off by default: nothing changes for existing setups.
+
 ## v0.1.11
 
 - Short names for what the unit reports it decodes: "Dolby TrueHD" instead of "DOLBY HD",

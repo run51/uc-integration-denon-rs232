@@ -16,9 +16,10 @@ The goal is to remove both the ESP **and** the Home Assistant machine from the c
 
 ## Current state
 
-- Driver complete, 82 tests green, installed and working on the maintainer's Remote 3
-  (0.1.11, validated on the real unit: state pushed after a Remote wake-up, short names
-  for the decoding the unit reports).
+- Driver complete, 83 tests green, installed and working on the maintainer's Remote 3
+  (0.1.12, validated on the real unit: optional font size and colour for sensor values).
+  Branch `style-capteurs` also holds an unreleased test build of number entities (needs
+  Remote core 0.85+).
 - Validated against `tests/denon_simulator.py` (fake Denon over TCP): connection, state
   queries, 30 s polling, reconnection.
 - **Validated on the real unit** (Nov. 2026, Dock 3, TCP 5000): power on/off, source,
