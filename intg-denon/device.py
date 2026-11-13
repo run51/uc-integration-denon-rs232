@@ -21,6 +21,8 @@ from asyncio import AbstractEventLoop
 from typing import Any
 
 from const import (
+    INDICATOR_OFF_COLOR,
+    INDICATOR_ON_COLOR,
     RAW_COMMAND_RE,
     SELECT_BY_ID,
     SENSOR_BY_ID,
@@ -488,9 +490,30 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
                 return cfg.default if vol is None else f"{vol:.1f}"
         return cfg.default
 
+    def indicator_on(self, kind: str) -> bool:
+        """True while the unit decodes in Direct ("direct") or Pure Direct ("pure_direct").
+
+        The unit reports the variant it uses: "DIRECT", "MULTI CH DIRECT", "DSD DIRECT",
+        "M CH DRCT"... and "PURE DIRECT", "MULTI CH PURE D", "DSD PURE DIRECT"... for Pure Direct.
+        """
+        code = " ".join((self.denon.surround or "").upper().split())
+        if not code:
+            return False
+        pure = "PURE" in code
+        direct = "DIRECT" in code or "DRCT" in code
+        return pure if kind == "pure_direct" else direct and not pure
+
     def get_sensor_attributes(self, sensor_id: str) -> dict[sensor.Attributes, Any]:
         """Attributes for a sensor entity."""
         cfg = SENSOR_BY_ID[sensor_id]
+        if cfg.indicator:
+            lit = self.is_connected and self.indicator_on(cfg.indicator)
+            color = INDICATOR_ON_COLOR if lit else INDICATOR_OFF_COLOR
+            state = sensor.States.ON if self.is_connected else sensor.States.UNAVAILABLE
+            return {
+                sensor.Attributes.STATE: state,
+                sensor.Attributes.VALUE: f"<font color='{color}'>●</font>",
+            }
         value = self._sensor_value(cfg)
         unit = cfg.unit
         styled = style_sensor_value(

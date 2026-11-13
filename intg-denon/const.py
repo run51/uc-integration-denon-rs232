@@ -310,6 +310,8 @@ class SensorConfig:
     unit: str | None = None
     default: str = ""
     labels: dict[str, str] = field(default_factory=dict)  # code -> label, optional
+    # Indicator sensors: "direct" / "pure_direct" light up while the unit decodes in that mode
+    indicator: str = ""
 
 
 SENSORS: tuple[SensorConfig, ...] = (
@@ -326,7 +328,14 @@ SENSORS: tuple[SensorConfig, ...] = (
     SensorConfig("audio_restorer", "Audio Restorer", labels=RESTORER_MODES),
     SensorConfig("zone2_source", "Zone 2 Source", labels=ZONE_SOURCE_OPTIONS),
     SensorConfig("zone2_volume_db", "Zone 2 Volume", unit="dB"),
+    SensorConfig("direct", "Direct", indicator="direct"),
+    SensorConfig("pure_direct", "Pure Direct", indicator="pure_direct"),
 )
+
+# Indicator sensors: a lamp ("●", in the remote's large sensor font) in this colour while the mode
+# is on, grey otherwise. The button above it carries the name.
+INDICATOR_ON_COLOR = "#4da6ff"
+INDICATOR_OFF_COLOR = "#5a5a5a"
 
 SENSOR_IDS = tuple(s.identifier for s in SENSORS)
 SENSOR_BY_ID = {s.identifier: s for s in SENSORS}
