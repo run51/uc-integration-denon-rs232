@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.13
+
+- Two indicator sensors, "Direct" and "Pure Direct": a blue dot while the unit decodes in that
+  mode, whatever variant it reports (MULTI CH DIRECT, DSD DIRECT, MULTI CH PURE D...), grey
+  otherwise. Placed as sensor widgets under the Direct / Pure Direct buttons of an activity
+  page, they show the mode at a glance.
+
 ## v0.1.12
 
 - Optional style for sensor values. The Remote shows sensor values in a 36 px font, larger than
