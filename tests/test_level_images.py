@@ -96,6 +96,8 @@ def test_level_sensor_attributes() -> None:
     class Fake:
         is_connected = True
         number_value = DenonClientDevice.number_value
+        reported_number_value = DenonClientDevice.reported_number_value
+        _pending_numbers: dict[str, tuple[float, float]] = {}
         get_sensor_attributes = DenonClientDevice.get_sensor_attributes
 
         class denon:  # noqa: N801 - stands for DenonState

@@ -72,38 +72,76 @@ def test_number_entity_definition() -> None:
 
 
 def test_held_button_steps_build_on_last_sent_value() -> None:
-    """A held volume button: each step builds on the value last sent, not on the slower report."""
+    """A held volume button: each step builds on the value just sent, shown at once."""
     import asyncio
 
-    from const import NUMBER_BY_ID  # noqa: E402
+    from const import NUMBER_BY_ID, DeviceConfig  # noqa: E402
+    from device import DenonClientDevice  # noqa: E402
     from number_entity import DenonNumber  # noqa: E402
     from ucapi import StatusCodes  # noqa: E402
 
-    class FakeDevice:
-        reported = -40.0  # the unit has not reported any of the new levels yet
+    async def run() -> tuple[list[float], list[float | None], int]:
+        cfg = DeviceConfig(
+            identifier="denon", name="Denon", address="1.2.3.4", number_entities=True
+        )
+        dev = DenonClientDevice(cfg, asyncio.get_running_loop())
+        dev.denon.volume_db = -40.0  # the unit has not reported any of the new levels yet
         sent: list[float] = []
+        shown: list[float | None] = []
+        pushes = 0
 
-        def number_value(self, _cfg):
-            return self.reported
+        async def set_volume_db(value: float) -> None:
+            sent.append(value)
 
-        async def set_number(self, _number_id, value):
-            self.sent.append(value)
+        def push_update() -> None:
+            nonlocal pushes
+            pushes += 1
 
-    entity = DenonNumber.__new__(DenonNumber)
-    entity._device = FakeDevice()  # type: ignore[assignment]
-    entity._cfg = NUMBER_BY_ID["volume"]
-    entity._sent, entity._sent_at = None, 0.0
+        dev._client.set_volume_db = set_volume_db  # type: ignore[method-assign]  # noqa: SLF001
+        dev.push_update = push_update  # type: ignore[method-assign]
+        entity = DenonNumber.__new__(DenonNumber)
+        entity._device, entity._cfg = dev, NUMBER_BY_ID["volume"]  # noqa: SLF001
+        for cmd in ("increment", "increment", "increment", "decrement"):
+            assert await entity.handle_command(None, cmd, None) == StatusCodes.OK
+            shown.append(dev.number_value(NUMBER_BY_ID["volume"]))
+        dev.denon.volume_db = -39.0  # the unit reports the last value: the pending one is dropped
+        assert dev.number_value(NUMBER_BY_ID["volume"]) == -39.0
+        assert "volume" not in dev._pending_numbers  # noqa: SLF001
+        return sent, shown, pushes
 
-    async def press(cmd: str) -> StatusCodes:
-        return await entity.handle_command(None, cmd, None)
+    sent, shown, pushes = asyncio.run(run())
+    assert sent == [-39.5, -39.0, -38.5, -39.0]
+    assert shown == sent  # shown before the unit reports it
+    assert pushes == 4  # one immediate push per step
 
-    async def run() -> None:
-        for _ in range(3):
-            assert await press("increment") == StatusCodes.OK
-        assert await press("decrement") == StatusCodes.OK
 
-    asyncio.run(run())
-    assert entity._device.sent == [-39.5, -39.0, -38.5, -39.0]
+def test_pending_value_expires() -> None:
+    """A value the unit never reports is given up after PENDING_S: the reported one is shown."""
+    import asyncio
+
+    import device as device_module  # noqa: E402
+    from const import NUMBER_BY_ID, DeviceConfig  # noqa: E402
+    from device import DenonClientDevice  # noqa: E402
+
+    async def run() -> tuple[float | None, float | None]:
+        cfg = DeviceConfig(
+            identifier="denon", name="Denon", address="1.2.3.4", number_entities=True
+        )
+        dev = DenonClientDevice(cfg, asyncio.get_running_loop())
+        dev.denon.channel_levels["C"] = -3.0
+        dev.push_update = lambda: None  # type: ignore[method-assign]
+
+        async def set_level(_key: str, _value: float) -> None:
+            pass
+
+        dev._client.set_channel_level_db = set_level  # type: ignore[method-assign]  # noqa: SLF001
+        await dev.set_number("center_level", 20.0)  # clamped to +12, never confirmed
+        before = dev.number_value(NUMBER_BY_ID["center_level"])
+        value, _ = dev._pending_numbers["center_level"]  # noqa: SLF001
+        dev._pending_numbers["center_level"] = (value, -device_module.PENDING_S)  # noqa: SLF001
+        return before, dev.number_value(NUMBER_BY_ID["center_level"])
+
+    assert asyncio.run(run()) == (12.0, -3.0)
 
 
 def test_number_values_are_clamped_to_the_range() -> None:

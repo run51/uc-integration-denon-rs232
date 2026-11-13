@@ -7,7 +7,6 @@ have it yet, so the entity is built on the generic ucapi Entity with the type "n
 from __future__ import annotations
 
 import logging
-import time
 from typing import Any
 
 from const import DeviceConfig, NumberConfig
@@ -18,10 +17,6 @@ from ucapi_framework import create_entity_id
 from ucapi_framework.entity import Entity as FrameworkEntity
 
 _LOG = logging.getLogger(__name__)
-
-# A held volume button sends increment/decrement faster than the unit reports the new level: steps
-# made within this time build on the value last sent, not on the level last reported.
-PENDING_S = 1.5
 
 
 class _EntityType(str):
@@ -48,8 +43,6 @@ class DenonNumber(UcEntity, FrameworkEntity):
     ) -> None:
         self._device = device_instance
         self._cfg = number_config
-        self._sent: float | None = None  # value last sent
-        self._sent_at = 0.0  # monotonic time it was sent
         entity_id = create_entity_id("number", config_device.identifier, number_config.identifier)
         _LOG.debug("Initializing Denon number entity: %s", entity_id)
         super().__init__(
@@ -79,9 +72,8 @@ class DenonNumber(UcEntity, FrameworkEntity):
     ) -> StatusCodes:
         """set_value, increment, decrement."""
         params = params or {}
+        # The value just sent while the unit has not reported it yet: a held button's steps add up
         current = self._device.number_value(self._cfg)
-        if self._sent is not None and time.monotonic() - self._sent_at < PENDING_S:
-            current = self._sent
         try:
             if cmd_id == "set_value":
                 value = float(params["value"])
@@ -94,8 +86,6 @@ class DenonNumber(UcEntity, FrameworkEntity):
                 return StatusCodes.NOT_IMPLEMENTED
         except (KeyError, TypeError, ValueError):
             return StatusCodes.BAD_REQUEST
-        value = self._cfg.clamp(value)
-        self._sent, self._sent_at = value, time.monotonic()
         try:
             await self._device.set_number(self._cfg.identifier, value)
         except (ConnectionError, OSError) as ex:

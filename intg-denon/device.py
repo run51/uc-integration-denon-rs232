@@ -17,6 +17,7 @@ import asyncio
 import html
 import logging
 import re
+import time
 from asyncio import AbstractEventLoop
 from typing import Any
 
@@ -54,6 +55,9 @@ POLL_INTERVAL_S = 30.0
 # Link considered dead after this long without any line from the unit.
 STALE_LINK_S = 2 * POLL_INTERVAL_S + 15
 UPDATE_DEBOUNCE_S = 0.08
+# A value sent for a number entity is shown at once, before the unit reports it, for at most this
+# time (a held button sends steps faster than the unit reports them; the unit may refuse a value).
+PENDING_S = 1.5
 
 
 class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many-public-methods
@@ -76,6 +80,8 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         # The framework runs connect/disconnect as concurrent tasks (standby,
         # integration restart): serialise them so a connect is never lost.
         self._lifecycle_lock = asyncio.Lock()
+        # number id -> (value sent, monotonic time): shown until the unit reports it or PENDING_S
+        self._pending_numbers: dict[str, tuple[float, float]] = {}
 
     # ------------------------------------------------------------ identity
 
@@ -415,7 +421,19 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         return cfg.options.get(code, code)
 
     def number_value(self, cfg: NumberConfig) -> float | None:
-        """Current value of a number entity in dB, None while unknown."""
+        """Value of a number entity in dB, None while unknown: the value just sent, if any."""
+        reported = self.reported_number_value(cfg)
+        pending = self._pending_numbers.get(cfg.identifier)
+        if pending is None:
+            return reported
+        value, sent_at = pending
+        if reported == value or time.monotonic() - sent_at >= PENDING_S:
+            del self._pending_numbers[cfg.identifier]
+            return reported
+        return value
+
+    def reported_number_value(self, cfg: NumberConfig) -> float | None:
+        """Value of a number entity in dB as last reported by the unit, None while unknown."""
         st = self.denon
         match cfg.kind:
             case "volume":
@@ -438,6 +456,10 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         """Send a new value for a number entity, clamped to its range and step."""
         cfg = NUMBER_BY_ID[number_id]
         value = cfg.clamp(value)
+        # Shown at once (number entity and level picture); the unit's report confirms or corrects it
+        self._pending_numbers[number_id] = (value, time.monotonic())
+        self.push_update()
+        self._loop.call_later(PENDING_S + 0.05, self._fire_push)
         match cfg.kind:
             case "volume":
                 await self._client.set_volume_db(value)
