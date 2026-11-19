@@ -58,6 +58,12 @@ UPDATE_DEBOUNCE_S = 0.08
 # A value sent for a number entity is shown at once, before the unit reports it, for at most this
 # time (a held button sends steps faster than the unit reports them; the unit may refuse a value).
 PENDING_S = 1.5
+# The listening mode asked for (by an activity or a button) is kept this long: the unit switches
+# back by itself to the mode it remembers for an input and a signal type, e.g. Direct once a film
+# starts playing.
+MODE_KEEP_S = 180
+MODE_RESENDS = 3  # at most, per request
+MODE_RESEND_DELAY_S = 1.0
 
 
 class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many-public-methods
@@ -82,6 +88,8 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         self._lifecycle_lock = asyncio.Lock()
         # number id -> (value sent, monotonic time): shown until the unit reports it or PENDING_S
         self._pending_numbers: dict[str, tuple[float, float]] = {}
+        # listening mode asked for: (MS code, monotonic time, resends left)
+        self._mode_request: tuple[str, float, int] | None = None
 
     # ------------------------------------------------------------ identity
 
@@ -178,12 +186,47 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
     # ------------------------------------------------------------- events
 
     def _on_denon_event(self, _state: DenonState, event: DenonEvent) -> None:
+        if event.kind is EventKind.SURROUND:
+            self._keep_requested_mode(str(event.value or ""))
         if event.kind is EventKind.POWER and event.value:
             # Protocol note K: the unit needs ~4 s after power on before it
             # accepts commands; it then reports everything spontaneously, but a
             # refresh catches parameters it does not push (PS family, zones).
             self._schedule_refresh(POWER_ON_SETTLE_S + 0.5)
         self._debounced_push()
+
+    def remember_mode(self, code: str) -> None:
+        """A listening mode was asked for: keep it for MODE_KEEP_S (see _keep_requested_mode)."""
+        self._mode_request = (code.strip().upper(), time.monotonic(), MODE_RESENDS)
+
+    def _keep_requested_mode(self, reported: str) -> None:
+        """The unit reports a listening mode: ask again for the requested one if it differs.
+
+        Only the Direct / Pure Direct / other family is compared: in Standard the unit itself picks
+        Dolby, DTS or Pro Logic from the signal, which is what Standard means.
+        """
+        request = self._mode_request
+        if request is None:
+            return
+        code, asked_at, left = request
+        if time.monotonic() - asked_at > MODE_KEEP_S or left <= 0:
+            self._mode_request = None
+            return
+        if mode_family(reported) == mode_family(code):
+            return
+        self._mode_request = (code, asked_at, left - 1)
+        _LOG.info(
+            "[%s] Unit switched to %s by itself, asking again for %s", self.log_id, reported, code
+        )
+
+        async def _again() -> None:
+            await asyncio.sleep(MODE_RESEND_DELAY_S)
+            try:
+                await self._client.select_surround(code)
+            except (ConnectionError, OSError) as ex:
+                _LOG.warning("[%s] Listening mode not sent again: %s", self.log_id, ex)
+
+        self._loop.create_task(_again())
 
     def _debounced_push(self) -> None:
         if self._update_handle is not None:
@@ -228,11 +271,16 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
 
         upper = key.upper()
         if upper in SIMPLE_COMMANDS:
-            await self.send_raw(SIMPLE_COMMANDS[upper])
+            command = SIMPLE_COMMANDS[upper]
+            if is_surround_command(command):
+                self.remember_mode(command[2:])
+            await self.send_raw(command)
             return True
 
         if RAW_COMMAND_RE.match(upper):
             _LOG.debug("[%s] Raw pass-through: %s", self.log_id, upper)
+            if is_surround_command(upper):
+                self.remember_mode(upper[2:])
             await self.send_raw(upper)
             return True
 
@@ -282,6 +330,7 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
         code = _code_for(option, SURROUND_MODES)
         if code is None:
             raise ValueError(f"Unknown surround mode: {option}")
+        self.remember_mode(code)
         await self._client.select_surround(code)
 
     async def select_option(self, cfg: SelectConfig, option: str) -> None:
@@ -294,6 +343,7 @@ class DenonClientDevice(PersistentConnectionDevice):  # pylint: disable=too-many
             case "source":
                 await self._client.select_source(code)
             case "surround":
+                self.remember_mode(code)
                 await self._client.select_surround(code)
             case "input_mode":
                 await self._client.set_input_mode(code)
@@ -649,3 +699,19 @@ def _code_for(option: str | None, table: dict[str, str]) -> str | None:
         if lowered in {code.lower(), label.lower()}:
             return code
     return None
+
+
+def mode_family(code: str) -> str:
+    """"pure", "direct" or "other": what the remembered-mode check compares (variants are many)."""
+    text = " ".join(code.upper().split())
+    if "PURE" in text:
+        return "pure"
+    if "DIRECT" in text or "DRCT" in text:
+        return "direct"
+    return "other"
+
+
+def is_surround_command(command: str) -> bool:
+    """MS<mode> commands, except the Quick Select ones (MSQUICK1) that share the prefix."""
+    upper = command.upper()
+    return upper.startswith("MS") and not upper.startswith("MSQUICK") and len(upper) > 2
